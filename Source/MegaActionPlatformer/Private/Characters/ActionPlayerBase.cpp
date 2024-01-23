@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
@@ -40,6 +41,12 @@ AActionPlayerBase::AActionPlayerBase()
 	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Jump_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Jump.IA_Jump"));
 	check(IA_Jump_Ref.Succeeded());
 	IA_Jump = IA_Jump_Ref.Object;
+
+	JumpMaxHoldTime = 0.4f;
+
+	UCharacterMovementComponent* CharMovement = GetCharacterMovement();
+	CharMovement->AirControl = 1.f;
+	CharMovement->FallingLateralFriction = 50.f;
 }
 
 void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -90,12 +97,12 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 	if (TriggerEvent == ETriggerEvent::Completed)
 	{
 		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump: Completed"));
+
+		StopJumping();
 	}
 	else if (TriggerEvent == ETriggerEvent::Canceled)
 	{
 		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump: Canceled"));
-
-		StopJumping();
 	}
 	else if (TriggerEvent == ETriggerEvent::Triggered)
 	{
