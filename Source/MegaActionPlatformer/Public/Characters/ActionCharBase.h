@@ -13,7 +13,7 @@ UCLASS()
 class MEGAACTIONPLATFORMER_API AActionCharBase : public APaperZDCharacter
 {
 	GENERATED_BODY()
-	
+public:
 	AActionCharBase();
 
 	
