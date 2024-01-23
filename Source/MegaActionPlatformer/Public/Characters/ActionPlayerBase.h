@@ -29,6 +29,10 @@ protected:
 	//~ End AActor Interface.
 
 private:
+	/** a cached pointer to a player controller */
+	UPROPERTY(Transient)
+	TObjectPtr<APlayerController> PlayerController;
+
 	UPROPERTY(Category=Camera,VisibleAnywhere)
 	TObjectPtr<class USpringArmComponent> SpringArmComponent;
 

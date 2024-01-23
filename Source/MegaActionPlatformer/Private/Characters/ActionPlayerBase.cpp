@@ -20,7 +20,8 @@ AActionPlayerBase::AActionPlayerBase()
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	check(SpringArmComponent);
 	SpringArmComponent->SetupAttachment(GetRootComponent());
-	SpringArmComponent->SetRelativeRotation(FRotator(-15.f, -90.f, 0.f));
+	SpringArmComponent->SetUsingAbsoluteRotation(true);
+	SpringArmComponent->SetWorldRotation(FRotator(-15.f, -90.f, 0.f));
 	SpringArmComponent->TargetArmLength = 500.f;
 	SpringArmComponent->bDoCollisionTest = false;
 
@@ -62,17 +63,25 @@ void AActionPlayerBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsPlayerControlled())
-	{
-		AddDefaultInputMappingContext();
-	}
+	PlayerController = CastChecked<APlayerController>(GetController());
+
+	AddDefaultInputMappingContext();
 }
 
 void AActionPlayerBase::OnIA_Move(const FInputActionValue& Value)
 {
-	float InputScale = Value.Get<float>();
+	const float InputScale = Value.Get<float>();
+	if (InputScale == 0.f)
+	{
+		UE_LOG( LogActionPlayerInput,Display, TEXT("Move: Zero") );
+		return;
+	}
+
+	const bool bRight = InputScale > 0.f;
 	AddMovementInput(FVector::XAxisVector, InputScale);
-	UE_LOG(LogActionPlayerInput,Display, TEXT("Move: %s"), ( InputScale>0.f ? TEXT("Right") : (InputScale<0.f ? TEXT("Left") : TEXT("Zero")) ));
+	PlayerController->SetControlRotation(FRotator(0.f, (bRight ? 0.f : 180.f), 0.f));
+
+	UE_LOG( LogActionPlayerInput,Display, TEXT("Move: %s"), (bRight?TEXT("Right"):TEXT("Left")) );
 }
 
 void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
@@ -80,17 +89,17 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
 	if (TriggerEvent == ETriggerEvent::Completed)
 	{
-		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump Completed"));
+		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump: Completed"));
 	}
 	else if (TriggerEvent == ETriggerEvent::Canceled)
 	{
-		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump Canceled"));
+		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump: Canceled"));
 
 		StopJumping();
 	}
 	else if (TriggerEvent == ETriggerEvent::Triggered)
 	{
-		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump Triggered"));
+		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump: Triggered"));
 
 		Jump();
 	}
@@ -98,8 +107,8 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 
 void AActionPlayerBase::AddDefaultInputMappingContext()
 {
-	APlayerController* PC = CastChecked<APlayerController>(GetController());
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
+	check(PlayerController);
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
 	check(Subsystem);
 
 	checkf(DefaultIMC, TEXT("%s does NOT setup a property of AActionPlayerBase: " UE_CONVERT_TO_TEXT(DefaultIMC)), *GetName());
