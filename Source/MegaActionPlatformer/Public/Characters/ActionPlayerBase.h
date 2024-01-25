@@ -23,10 +23,18 @@ public:
 	//~ Begin APawn Interface.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	//~ End APawn Interface.
+
+	UFUNCTION(BlueprintPure, Category=Animation)
+	bool IsShooting() const;
+
+
 protected:
 	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
 	//~ End AActor Interface.
+
+	void Shoot();
+	void EndShoot();
 
 private:
 	/** a cached pointer to a player controller */
@@ -42,6 +50,7 @@ private:
 private:
 	void OnIA_Move(const FInputActionValue& Value);
 	void OnIA_Jump(const FInputActionInstance& Instance);
+	void OnIA_Shoot(const FInputActionValue& Value);
 	void AddDefaultInputMappingContext();
 
 	UPROPERTY(Category=Input,EditDefaultsOnly)
@@ -52,4 +61,20 @@ private:
 
 	UPROPERTY(Category=Input,EditDefaultsOnly)
 	TObjectPtr<UInputAction> IA_Jump;
+
+	UPROPERTY(Category=Input,EditDefaultsOnly)
+	TObjectPtr<UInputAction> IA_Shoot;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	TSubclassOf<class APlayerProjectileBase> PlayerProjectileClass;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USceneComponent> Muzzle;
+
+	FTimerHandle ShootingTimer;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	float ShootingTime = 0.5f;
+
+	bool bShooting;
 };

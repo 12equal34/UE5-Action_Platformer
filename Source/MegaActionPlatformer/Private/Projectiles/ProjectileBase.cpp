@@ -26,6 +26,8 @@ AProjectileBase::AProjectileBase()
 	ProjectileMovementComponent->ProjectileGravityScale = 0.f;
 	ProjectileMovementComponent->MaxSpeed     = 1000.f;
 	ProjectileMovementComponent->InitialSpeed = 1000.f;
+
+	InitialLifeSpan = 3.f;
 }
 
 void AProjectileBase::BeginPlay()
@@ -68,7 +70,6 @@ void AProjectileBase::PlayDespawnVFX()
 	UWorld* World = GetWorld();
 	
 	FActorSpawnParameters Params;
-	Params.Name = TEXT("DespawnVFX");
 	Params.bNoFail = true;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	APaperProjectileVFX* DespawnVFX = World->SpawnActor<APaperProjectileVFX>(DespawnVfxClass.Get(), GetActorTransform(), Params);
