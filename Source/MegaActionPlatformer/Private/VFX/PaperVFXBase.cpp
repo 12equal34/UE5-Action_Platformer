@@ -10,7 +10,7 @@ APaperVFXBase::APaperVFXBase()
 	PaperFlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("PaperFlipbook"));
 	check(PaperFlipbookComponent != nullptr);
 	SetRootComponent(PaperFlipbookComponent);
-	PaperFlipbookComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PaperFlipbookComponent->SetCollisionProfileName(TEXT("VFX"));
 }
 
 void APaperVFXBase::BeginPlay()

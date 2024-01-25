@@ -14,9 +14,7 @@ AProjectileBase::AProjectileBase()
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	check(SphereComponent != nullptr);
 	SetRootComponent(SphereComponent);
-	SphereComponent->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	SphereComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	SphereComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	SphereComponent->SetCollisionProfileName(TEXT("Projectile"));
 
 	PaperFlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("PaperFlipbook"));
 	check(PaperFlipbookComponent != nullptr);
