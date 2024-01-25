@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "ProjectileBase.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogProjectile,Display,All);
+
 class USphereComponent;
 class UPaperFlipbookComponent;
 class UProjectileMovementComponent;
@@ -25,9 +27,8 @@ protected:
 	FORCEINLINE UPaperFlipbookComponent* GetPaperFlipbook() const { return PaperFlipbookComponent; }
 	FORCEINLINE UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovementComponent; }
 
-public:	
-	virtual void Tick(float DeltaTime) override;
-
+	UFUNCTION()
+	virtual void OnSphereHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 private:
 	UPROPERTY(VisibleAnywhere)
