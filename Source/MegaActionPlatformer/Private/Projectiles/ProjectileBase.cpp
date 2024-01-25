@@ -3,6 +3,9 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
 #include "PaperFlipbookComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "VFX/PaperProjectileVFX.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY(LogProjectile);
 
@@ -34,6 +37,16 @@ void AProjectileBase::BeginPlay()
 	SphereComponent->OnComponentHit.AddDynamic(this, &AProjectileBase::OnSphereHit);
 }
 
+void AProjectileBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	if (EndPlayReason == EEndPlayReason::Destroyed)
+	{
+		PlayDespawnVFX();
+	}
+}
+
 void AProjectileBase::OnSphereHit(UPrimitiveComponent* HitComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,FVector NormalImpulse,const FHitResult& Hit)
 {
 	check(OtherActor != nullptr);
@@ -48,4 +61,17 @@ void AProjectileBase::OnSphereHit(UPrimitiveComponent* HitComponent,AActor* Othe
 	{
 		UE_LOG(LogProjectile, Display, TEXT("Trying to destroy %s is failed."), *GetName());
 	}
+}
+
+void AProjectileBase::PlayDespawnVFX()
+{
+	checkf(DespawnVfxClass != nullptr, TEXT("The DespawnVfxClass property of %s is NOT set."), *GetClass()->GetName());
+	
+	UWorld* World = GetWorld();
+	
+	FActorSpawnParameters Params;
+	Params.Name = TEXT("DespawnVFX");
+	Params.bNoFail = true;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	APaperProjectileVFX* DespawnVFX = World->SpawnActor<APaperProjectileVFX>(DespawnVfxClass.Get(), GetActorTransform(), Params);
 }

@@ -21,7 +21,10 @@ public:
 	AProjectileBase();
 
 protected:
+	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	//~ End AActor Interface.
 
 	FORCEINLINE USphereComponent* GetSphere() const { return SphereComponent; }
 	FORCEINLINE UPaperFlipbookComponent* GetPaperFlipbook() const { return PaperFlipbookComponent; }
@@ -31,6 +34,8 @@ protected:
 	virtual void OnSphereHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 private:
+	void PlayDespawnVFX();
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USphereComponent> SphereComponent;
 
@@ -39,4 +44,7 @@ private:
 
 	UPROPERTY(Category=Movement,VisibleAnywhere)
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
+
+	UPROPERTY(Category=VFX,EditDefaultsOnly)
+	TSubclassOf<class APaperProjectileVFX> DespawnVfxClass;
 };
