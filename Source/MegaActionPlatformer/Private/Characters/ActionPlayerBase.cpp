@@ -13,7 +13,7 @@
 #include "Projectiles/PlayerProjectileBase.h"
 #include "Components/SceneComponent.h"
 
-DEFINE_LOG_CATEGORY(LogActionPlayerInput);
+DEFINE_LOG_CATEGORY(LogPlayerInput);
 
 #pragma warning(disable: 26813)
 
@@ -158,7 +158,7 @@ void AActionPlayerBase::OnIA_Move(const FInputActionValue& Value)
 	const float InputScale = Value.Get<float>();
 	if (InputScale == 0.f)
 	{
-		UE_LOG( LogActionPlayerInput,Display, TEXT("Move: Zero") );
+		UE_LOG( LogPlayerInput,Display, TEXT("Move: Zero") );
 		return;
 	}
 
@@ -166,7 +166,7 @@ void AActionPlayerBase::OnIA_Move(const FInputActionValue& Value)
 	AddMovementInput(FVector::XAxisVector, InputScale);
 	PlayerController->SetControlRotation(FRotator(0.f, (bRight ? 0.f : 180.f), 0.f));
 
-	UE_LOG( LogActionPlayerInput,Display, TEXT("Move: %s"), (bRight?TEXT("Right"):TEXT("Left")) );
+	UE_LOG( LogPlayerInput,Display, TEXT("Move: %s"), (bRight?TEXT("Right"):TEXT("Left")) );
 }
 
 void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
@@ -174,17 +174,17 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
 	if (TriggerEvent == ETriggerEvent::Completed)
 	{
-		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump: Completed"));
+		UE_LOG(LogPlayerInput, Display, TEXT("Jump: Completed"));
 
 		StopJumping();
 	}
 	else if (TriggerEvent == ETriggerEvent::Canceled)
 	{
-		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump: Canceled"));
+		UE_LOG(LogPlayerInput, Display, TEXT("Jump: Canceled"));
 	}
 	else if (TriggerEvent == ETriggerEvent::Triggered)
 	{
-		UE_LOG(LogActionPlayerInput, Display, TEXT("Jump: Triggered"));
+		UE_LOG(LogPlayerInput, Display, TEXT("Jump: Triggered"));
 
 		Jump();
 	}
@@ -193,7 +193,7 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 void AActionPlayerBase::OnIA_Shoot(const FInputActionValue& Value)
 {
 	const bool bPress = Value.Get<bool>();
-	UE_LOG(LogActionPlayerInput, Display, TEXT("Shoot: %s"), bPress ? TEXT("Pressed") : TEXT("Released"));
+	UE_LOG(LogPlayerInput, Display, TEXT("Shoot: %s"), bPress ? TEXT("Pressed") : TEXT("Released"));
 	if (bPress)
 	{
 		Shoot();

@@ -6,7 +6,7 @@
 #include "Characters/ActionCharBase.h"
 #include "ActionPlayerBase.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogActionPlayerInput, Display, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogPlayerInput, Display, All);
 
 class UInputMappingContext;
 class UInputAction;
