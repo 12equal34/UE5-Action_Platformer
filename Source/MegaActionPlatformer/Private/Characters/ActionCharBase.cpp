@@ -8,12 +8,10 @@
 
 AActionCharBase::AActionCharBase()
 {
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedLitSpriteMaterial.MaskedLitSpriteMaterial"));
-	check(MaskedMaterialRef.Succeeded());
-
 	UPaperFlipbookComponent* MySprite = GetSprite();
 	check(MySprite);
-	MySprite->SetRelativeLocation(FVector(-5.f, 0.f, 13.9f));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedLitSpriteMaterial.MaskedLitSpriteMaterial"));
+	check(MaskedMaterialRef.Succeeded());
 	MySprite->SetMaterial(0, MaskedMaterialRef.Object);
 	MySprite->SetCastShadow(true);
 

@@ -12,6 +12,7 @@
 #include "InputMappingContext.h"
 #include "Projectiles/PlayerProjectileBase.h"
 #include "Components/SceneComponent.h"
+#include "PaperFlipbookComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerInput);
 
@@ -21,6 +22,9 @@ DEFINE_LOG_CATEGORY(LogPlayerInput);
 
 AActionPlayerBase::AActionPlayerBase()
 {
+	UPaperFlipbookComponent* MySprite = GetSprite();
+	MySprite->SetRelativeLocation(FVector(-5.f, 0.f, 13.9f));
+
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	check(SpringArmComponent);
 	SpringArmComponent->SetupAttachment(GetRootComponent());
