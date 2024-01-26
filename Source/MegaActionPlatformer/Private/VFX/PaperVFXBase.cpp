@@ -23,11 +23,17 @@ void APaperVFXBase::BeginPlay()
 	PaperFlipbookComponent->OnFinishedPlaying.AddDynamic(this, &APaperVFXBase::OnFinishedPlaying);
 }
 
-void APaperVFXBase::OnFinishedPlaying()
+void APaperVFXBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	UE_LOG(LogVFX, Display, TEXT("%s is finished playing."), *GetName());
-	if (Destroy())
+	Super::EndPlay(EndPlayReason);
+
+	if (EndPlayReason == EEndPlayReason::Destroyed)
 	{
 		UE_LOG(LogVFX, Display, TEXT("%s is destroyed."), *GetName());
 	}
+}
+
+void APaperVFXBase::OnFinishedPlaying()
+{
+	ensure(Destroy() == true);
 }

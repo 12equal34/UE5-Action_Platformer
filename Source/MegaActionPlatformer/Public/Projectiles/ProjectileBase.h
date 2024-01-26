@@ -11,6 +11,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogProjectile,Display,All);
 class USphereComponent;
 class UPaperFlipbookComponent;
 class UProjectileMovementComponent;
+class UActionFactionComponent;
+class AActionCharBase;
 
 UCLASS()
 class MEGAACTIONPLATFORMER_API AProjectileBase : public AActor
@@ -20,6 +22,7 @@ class MEGAACTIONPLATFORMER_API AProjectileBase : public AActor
 public:	
 	AProjectileBase();
 
+	FORCEINLINE UActionFactionComponent* GetFactionComponent() const { return FactionComponent; }
 protected:
 	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
@@ -30,11 +33,20 @@ protected:
 	FORCEINLINE UPaperFlipbookComponent* GetPaperFlipbook() const { return PaperFlipbookComponent; }
 	FORCEINLINE UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovementComponent; }
 
-	UFUNCTION()
-	virtual void OnSphereHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	/** When this projectile hits a player or a enemy, acts */
+	virtual void OnOverlapPlayerOrEnemy(AActionCharBase& ActionChar);
+
+	/** e.g. this projectile hits a wall. */
+	virtual void OnHitStructure(AActor& Structure);
 
 private:
 	void PlayDespawnVFX();
+
+	UFUNCTION()
+	void OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnSphereHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USphereComponent> SphereComponent;
@@ -47,4 +59,7 @@ private:
 
 	UPROPERTY(Category=VFX,EditDefaultsOnly)
 	TSubclassOf<class APaperProjectileVFX> DespawnVfxClass;
+
+	UPROPERTY(Category=Faction,VisibleAnywhere)
+	TObjectPtr<UActionFactionComponent> FactionComponent;
 };

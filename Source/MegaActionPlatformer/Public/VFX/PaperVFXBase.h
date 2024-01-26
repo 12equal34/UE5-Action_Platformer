@@ -17,7 +17,11 @@ public:
 	APaperVFXBase();
 
 protected:
+	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	//~ End AActor Interface.
+
 	FORCEINLINE UPaperFlipbookComponent* GetPaperFlipbook() const { return PaperFlipbookComponent; }
 
 	UFUNCTION()

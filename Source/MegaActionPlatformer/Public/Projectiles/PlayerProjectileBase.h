@@ -13,5 +13,6 @@ UCLASS()
 class MEGAACTIONPLATFORMER_API APlayerProjectileBase : public AProjectileBase
 {
 	GENERATED_BODY()
-	
+public:
+	APlayerProjectileBase();
 };

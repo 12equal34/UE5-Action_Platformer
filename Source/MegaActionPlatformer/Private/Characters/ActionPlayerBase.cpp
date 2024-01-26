@@ -13,6 +13,7 @@
 #include "Projectiles/PlayerProjectileBase.h"
 #include "Components/SceneComponent.h"
 #include "PaperFlipbookComponent.h"
+#include "Factions/ActionFactionComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerInput);
 
@@ -24,6 +25,9 @@ AActionPlayerBase::AActionPlayerBase()
 {
 	UPaperFlipbookComponent* MySprite = GetSprite();
 	MySprite->SetRelativeLocation(FVector(-5.f, 0.f, 13.9f));
+
+	UActionFactionComponent* FactionComp = GetFactionComponent();
+	FactionComp->SetFaction(EActionFaction::EAF_Player);
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	check(SpringArmComponent);

@@ -13,5 +13,12 @@ UCLASS()
 class MEGAACTIONPLATFORMER_API AActionEnemyBase : public AActionCharBase
 {
 	GENERATED_BODY()
-	
+public:
+	AActionEnemyBase();
+
+protected:
+	//~ Begin AActor Interface.
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	//~ End AActor Interface.
 };

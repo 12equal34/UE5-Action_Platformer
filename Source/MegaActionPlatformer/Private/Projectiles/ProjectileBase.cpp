@@ -6,6 +6,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "VFX/PaperProjectileVFX.h"
 #include "Engine/World.h"
+#include "Factions/ActionFactionComponent.h"
+#include "Characters/ActionCharBase.h"
 
 DEFINE_LOG_CATEGORY(LogProjectile);
 
@@ -27,6 +29,9 @@ AProjectileBase::AProjectileBase()
 	ProjectileMovementComponent->MaxSpeed     = 1000.f;
 	ProjectileMovementComponent->InitialSpeed = 1000.f;
 
+	FactionComponent = CreateDefaultSubobject<UActionFactionComponent>(TEXT("Faction"));
+	check(FactionComponent);
+
 	InitialLifeSpan = 3.f;
 }
 
@@ -34,6 +39,7 @@ void AProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, & AProjectileBase::OnSphereBeginOverlap);
 	SphereComponent->OnComponentHit.AddDynamic(this, &AProjectileBase::OnSphereHit);
 }
 
@@ -47,20 +53,44 @@ void AProjectileBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 }
 
+void AProjectileBase::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
+{
+	AActionCharBase* ActionChar = Cast<AActionCharBase>(OtherActor);
+	if (ActionChar)
+	{
+		OnOverlapPlayerOrEnemy(*ActionChar);
+	}
+}
+
 void AProjectileBase::OnSphereHit(UPrimitiveComponent* HitComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,FVector NormalImpulse,const FHitResult& Hit)
 {
 	check(OtherActor != nullptr);
-	UE_LOG(LogProjectile, Display, TEXT("%s hits %s."), *GetName(), *OtherActor->GetName());
+	
+	OnHitStructure(*OtherActor);
+}
 
-	const bool bDestroy = Destroy();
-	if (bDestroy)
+void AProjectileBase::OnOverlapPlayerOrEnemy(AActionCharBase& ActionChar)
+{
+	const UActionFactionComponent& MyFaction = *GetFactionComponent();
+	const UActionFactionComponent& CharacterFaction = *ActionChar.GetFactionComponent();
+	const bool bHostile = MyFaction.IsHostile(CharacterFaction);
+	if (bHostile)
 	{
-		UE_LOG(LogProjectile, Display, TEXT("%s is destroyed."), *GetName());
+		ActionChar.Destroy();
+
+		verifyf(Destroy() == true, TEXT("The projectile is indestructive."));
 	}
 	else
 	{
-		UE_LOG(LogProjectile, Display, TEXT("Trying to destroy %s is failed."), *GetName());
+
 	}
+}
+
+void AProjectileBase::OnHitStructure(AActor& Structure)
+{
+	UE_LOG(LogProjectile, Display, TEXT("%s hits %s."), *GetName(), *Structure.GetName());
+
+	verifyf(Destroy() == true, TEXT("The projectile is indestructive."));
 }
 
 void AProjectileBase::PlayDespawnVFX()

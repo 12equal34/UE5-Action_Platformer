@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "VFX/PaperVFXBase.h"
-#include "PaperProjectileVFX.generated.h"
+#include "PaperDestructionVFX.generated.h"
 
 UCLASS()
-class MEGAACTIONPLATFORMER_API APaperProjectileVFX : public APaperVFXBase
+class MEGAACTIONPLATFORMER_API APaperDestructionVFX : public APaperVFXBase
 {
 	GENERATED_BODY()
+
 public:
-	APaperProjectileVFX();
+	APaperDestructionVFX();
 };
