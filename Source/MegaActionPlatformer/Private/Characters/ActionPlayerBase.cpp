@@ -92,15 +92,30 @@ void AActionPlayerBase::BeginPlay()
 	PlayerController = CastChecked<APlayerController>(GetController());
 
 	AddDefaultInputMappingContext();
+
+	// makes the restoring shot energy timers buffer.
+	ShotEnergy = MaxShotEnergy;
+	check(MaxShotEnergy > 0);
+	check(MaxShotEnergy <= 32/*size limit*/);
+	RestoringShotEnergyTimers = MakeUnique<TCircularBuffer<FTimerHandle>>(MaxShotEnergy, FTimerHandle{});
+	check(RestoringShotEnergyTimers.IsValid());
+	RestoreShotEnergyIndex = RestoringShotEnergyTimers->Capacity() - 1;
 }
 
 void AActionPlayerBase::Shoot()
 {
-	bShooting = true;
+	if (ShotEnergy <= 0)
+	{
+		UE_LOG(LogPlayer,Display, TEXT("Failed to shoot. The player have no shot energy."));
+		return;
+	}
 
 	UWorld* World = GetWorld();
 	check(World != nullptr);
 
+	FTimerManager& TM = World->GetTimerManager();
+
+	// spawns the projectile owned by this.
 	FActorSpawnParameters Params;
 	Params.bNoFail = true;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -111,15 +126,31 @@ void AActionPlayerBase::Shoot()
 		Muzzle->GetComponentTransform(),
 		Params);
 	UE_LOG(LogPlayer,Display, TEXT("Shoot! : %s is spawned by %s"), *Projectile->GetName(), *GetName());
+	
+	// decreases a shot energy and sets a timer for restoring the energy.
+	check(RestoringShotEnergyTimers.IsValid());
+	TCircularBuffer<FTimerHandle>& Timers = *RestoringShotEnergyTimers.Get();
+	ShotEnergy--;
+	UE_LOG(LogPlayer,Display, TEXT("Shot energy : %d"), ShotEnergy);
+	RestoreShotEnergyIndex = Timers.GetNextIndex(RestoreShotEnergyIndex);
+	TM.SetTimer(Timers[RestoreShotEnergyIndex],this,&AActionPlayerBase::RestoreShotEnergy,ShotEnergyRestoreTime,false);
 
-	FTimerManager& TM = World->GetTimerManager();
-	TM.ClearTimer(ShootingTimer);
+	// for character shooting animations.
+	bShooting = true;
 	TM.SetTimer(ShootingTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
 }
 
 void AActionPlayerBase::EndShoot()
 {
 	bShooting = false;
+}
+
+void AActionPlayerBase::RestoreShotEnergy()
+{
+	if (ShotEnergy >= MaxShotEnergy) return;
+
+	ShotEnergy++;
+	UE_LOG(LogPlayer,Display, TEXT("The player's shot energy is restored. (now shot energy: %d)"), ShotEnergy);
 }
 
 void AActionPlayerBase::OnIA_Move(const FInputActionValue& Value)

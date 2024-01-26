@@ -36,6 +36,8 @@ protected:
 	void Shoot();
 	void EndShoot();
 
+	void RestoreShotEnergy();
+
 private:
 	/** a cached pointer to a player controller */
 	UPROPERTY(Transient)
@@ -73,8 +75,21 @@ private:
 
 	FTimerHandle ShootingTimer;
 
+	TUniquePtr<TCircularBuffer<FTimerHandle>> RestoringShotEnergyTimers;
+
+	uint32 RestoreShotEnergyIndex;
+
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	float ShootingTime = 0.5f;
+	
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	float ShotEnergyRestoreTime = 0.5f;
 
 	bool bShooting;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	int32 MaxShotEnergy = 3;
+
+	UPROPERTY(Category=Combat,VisibleInstanceOnly,Transient)
+	int32 ShotEnergy;
 };
