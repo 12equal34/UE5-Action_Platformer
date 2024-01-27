@@ -3,12 +3,15 @@
 
 #include "Characters/ActionEnemyBase.h"
 #include "Factions/ActionFactionComponent.h"
-
+#include "Combat/HPComponent.h"
 
 AActionEnemyBase::AActionEnemyBase()
 {
 	UActionFactionComponent* FactionComp = GetFactionComponent();
 	FactionComp->SetFaction(EActionFaction::EAF_Enemy);
+
+	UHPComponent* HPComp = GetHPComponent();
+	HPComp->SetMaximumHP(10.f);
 }
 
 void AActionEnemyBase::BeginPlay()

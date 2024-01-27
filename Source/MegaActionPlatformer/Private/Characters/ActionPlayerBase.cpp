@@ -14,6 +14,7 @@
 #include "Components/SceneComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "Factions/ActionFactionComponent.h"
+#include "Combat/HPComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerInput);
 
@@ -67,6 +68,9 @@ AActionPlayerBase::AActionPlayerBase()
 	UCharacterMovementComponent* CharMovement = GetCharacterMovement();
 	CharMovement->AirControl = 1.f;
 	CharMovement->FallingLateralFriction = 50.f;
+
+	UHPComponent* HPComp = GetHPComponent();
+	HPComp->SetMaximumHP(100.f);
 }
 
 void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

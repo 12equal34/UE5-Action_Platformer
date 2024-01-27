@@ -8,6 +8,7 @@
 #include "Engine/World.h"
 #include "Factions/ActionFactionComponent.h"
 #include "Characters/ActionCharBase.h"
+#include "Combat/DamageComponent.h"
 
 DEFINE_LOG_CATEGORY(LogProjectile);
 
@@ -31,6 +32,9 @@ AProjectileBase::AProjectileBase()
 
 	FactionComponent = CreateDefaultSubobject<UActionFactionComponent>(TEXT("Faction"));
 	check(FactionComponent);
+
+	DamageComponent = CreateDefaultSubobject<UDamageComponent>(TEXT("Damage"));
+	check(DamageComponent);
 
 	InitialLifeSpan = 3.f;
 }
@@ -76,13 +80,10 @@ void AProjectileBase::OnOverlapPlayerOrEnemy(AActionCharBase& ActionChar)
 	const bool bHostile = MyFaction.IsHostile(CharacterFaction);
 	if (bHostile)
 	{
-		ActionChar.Destroy();
+		DamageComponent->ApplyDamage(ActionChar);
 
-		verifyf(Destroy() == true, TEXT("The projectile is indestructive."));
-	}
-	else
-	{
-
+		const bool bDestroyed = Destroy();
+		checkf(bDestroyed, TEXT("The projectile is indestructive."));
 	}
 }
 
@@ -90,7 +91,8 @@ void AProjectileBase::OnHitStructure(AActor& Structure)
 {
 	UE_LOG(LogProjectile, Display, TEXT("%s hits %s."), *GetName(), *Structure.GetName());
 
-	verifyf(Destroy() == true, TEXT("The projectile is indestructive."));
+	const bool bDestroyed = Destroy();
+	checkf(bDestroyed, TEXT("The projectile is indestructive."));
 }
 
 void AProjectileBase::PlayDespawnVFX()

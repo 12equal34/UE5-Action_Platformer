@@ -12,6 +12,8 @@ class USphereComponent;
 class UPaperFlipbookComponent;
 class UProjectileMovementComponent;
 class UActionFactionComponent;
+class UDamageComponent;
+
 class AActionCharBase;
 
 UCLASS()
@@ -23,6 +25,7 @@ public:
 	AProjectileBase();
 
 	FORCEINLINE UActionFactionComponent* GetFactionComponent() const { return FactionComponent; }
+
 protected:
 	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
@@ -32,6 +35,7 @@ protected:
 	FORCEINLINE USphereComponent* GetSphere() const { return SphereComponent; }
 	FORCEINLINE UPaperFlipbookComponent* GetPaperFlipbook() const { return PaperFlipbookComponent; }
 	FORCEINLINE UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovementComponent; }
+	FORCEINLINE UDamageComponent* GetDamageComponent() const { return DamageComponent; }
 
 	/** When this projectile hits a player or a enemy, acts */
 	virtual void OnOverlapPlayerOrEnemy(AActionCharBase& ActionChar);
@@ -62,4 +66,7 @@ private:
 
 	UPROPERTY(Category=Faction,VisibleAnywhere)
 	TObjectPtr<UActionFactionComponent> FactionComponent;
+
+	UPROPERTY(Category=Combat,VisibleAnywhere)
+	TObjectPtr<UDamageComponent> DamageComponent;
 };

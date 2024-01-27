@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Factions/ActionFactionComponent.h"
 #include "VFX/PaperDestructionVFX.h"
+#include "Combat/HPComponent.h"
 
 AActionCharBase::AActionCharBase()
 {
@@ -36,11 +37,19 @@ AActionCharBase::AActionCharBase()
 	static ConstructorHelpers::FClassFinder<APaperDestructionVFX> DestructionVfxClassRef(TEXT("/Game/MegaActionPlatformer/Blueprints/Characters/BP_DestructionVFX_BASE.BP_DestructionVFX_BASE_C"));
 	check(DestructionVfxClassRef.Succeeded());
 	DestructionVfxClass = DestructionVfxClassRef.Class;
+
+	HPComponent = CreateDefaultSubobject<UHPComponent>(TEXT("HP"));
+	check(HPComponent);
 }
 
 void AActionCharBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	OnTakeAnyDamage.AddDynamic(this, &AActionCharBase::OnAppliedAnyDamage);
+
+	HPComponent->OnHPBecameZero.BindUObject(this, &AActionCharBase::OnStartedDying);
+	bDead = HPComponent->IsLeft();
 }
 
 void AActionCharBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -53,10 +62,33 @@ void AActionCharBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 }
 
+float AActionCharBase::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+}
+
+void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser)
+{
+	if (Damage > 0.f)
+	{
+		HPComponent->Injure(Damage);
+	}
+}
+
+void AActionCharBase::OnStartedDying()
+{
+	bDead = true;
+	OnFinishedDying();
+}
+
+void AActionCharBase::OnFinishedDying()
+{
+	Destroy();
+}
+
 void AActionCharBase::PlayDestructionVFX()
 {
 	if (DestructionVfxClass == nullptr) return;
-	//checkf(DestructionVfxClass != nullptr, TEXT("The DestructionVfxClass property of %s is NOT set."), *GetClass()->GetName());
 
 	UWorld* World = GetWorld();
 
