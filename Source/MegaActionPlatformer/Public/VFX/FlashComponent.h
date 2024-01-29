@@ -49,7 +49,7 @@ private:
 	FName FlashPowerName;
 
 	UPROPERTY(Category=VFX,EditDefaultsOnly)
-	float TimeLength = 1.f;
+	float TimeLength = 0.5f;
 
 	UPROPERTY(Category=VFX,EditDefaultsOnly)
 	TObjectPtr<UCurveLinearColor> FlashColorCurve;

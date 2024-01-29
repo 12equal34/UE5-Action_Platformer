@@ -28,6 +28,9 @@ public:
 	FORCEINLINE UMaterialInstanceDynamic& GetSpriteMaterialDynamic() const { check(SpriteMaterialDynamic); return *SpriteMaterialDynamic; }
 
 	void OnKnockbacked(float KnockbackTime);
+	void OnInvinciblized();
+
+	FORCEINLINE bool IsInvincible() const { return bInvincible; }
 
 protected:
 	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar);
@@ -39,12 +42,14 @@ private:
 	void OnStartedDying();
 	void OnFinishedDying();
 	void FinishStop();
+	void FinishInvincible();
 
 	UFUNCTION()
 	void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 protected:
 	bool bStop;
+	bool bInvincible;
 
 private:
 	void PlayDestructionVFX();
@@ -61,13 +66,18 @@ private:
 	UPROPERTY(Category=VFX,VisibleAnywhere)
 	TObjectPtr<class UFlashComponent> HitFlashComponent;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> SpriteMaterialDynamic;
+
 	UPROPERTY(Category=Animation,VisibleAnywhere)
 	bool bDead;
 
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	float DamagedInvisibleTime = 0.2f;
+
+private:
 	float InitialFallingLateralFriction;
 
 	FTimerHandle FinishStopTimer;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMaterialInstanceDynamic> SpriteMaterialDynamic;
+	FTimerHandle FinishInvincibleTimer;
 };

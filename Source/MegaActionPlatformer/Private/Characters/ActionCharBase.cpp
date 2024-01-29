@@ -85,6 +85,7 @@ void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const
 	{
 		HPComponent->Injure(Damage);
 		HitFlashComponent->PlayFromStart();
+		OnInvinciblized();
 	}
 }
 
@@ -105,6 +106,12 @@ void AActionCharBase::FinishStop()
 	bStop = false;
 }
 
+void AActionCharBase::FinishInvincible()
+{
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	bInvincible = false;
+}
+
 void AActionCharBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
 {
 	if (AActionCharBase* OtherActionChar = Cast<AActionCharBase>(OtherActor))
@@ -119,6 +126,14 @@ void AActionCharBase::OnKnockbacked(float KnockbackTime)
 	bStop = true;
 	check(KnockbackTime > 0.f);
 	GetWorldTimerManager().SetTimer(FinishStopTimer, this, &AActionCharBase::FinishStop, KnockbackTime, false);
+}
+
+void AActionCharBase::OnInvinciblized()
+{
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	bInvincible = true;
+	check(DamagedInvisibleTime > 0.f);
+	GetWorldTimerManager().SetTimer(FinishInvincibleTimer, this, &AActionCharBase::FinishInvincible, DamagedInvisibleTime, false);
 }
 
 void AActionCharBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)

@@ -30,13 +30,13 @@ protected:
 
 private:
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float HorizontalKnockbackPower = 1000.f;
+	float HorizontalKnockbackPower = 500.f;
 
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float VerticalKnockbackPower = 1000.f;
+	float VerticalKnockbackPower = 500.f;
 
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float KnockbackTime = 0.5f;
+	float KnockbackTime = 0.3f;
 
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	bool bCanKnockback = true;
