@@ -3,6 +3,7 @@
 
 #include "Characters/ActionPlayerBase.h"
 #include "Characters/LogPlayer.h"
+#include "Characters/ActionEnemyBase.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -165,8 +166,26 @@ void AActionPlayerBase::RestoreShotEnergy()
 	UE_LOG(LogPlayer,Display, TEXT("The player's shot energy is restored. (now shot energy: %d)"), ShotEnergy);
 }
 
+void AActionPlayerBase::OnPlayerBeginOverlapEnemy(AActionEnemyBase& EnemyActionChar)
+{
+	checkNoRecursion();
+	EnemyActionChar.OnEnemyBeginOverlapPlayer(*this);
+}
+
+void AActionPlayerBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)
+{
+	Super::OnActionCharBeginOverlap(OtherActionChar);
+
+	if (AActionEnemyBase* EnemyActionChar = Cast<AActionEnemyBase>(&OtherActionChar))
+	{
+		OnPlayerBeginOverlapEnemy(*EnemyActionChar);
+	}
+}
+
 void AActionPlayerBase::OnIA_Move(const FInputActionValue& Value)
 {
+	if (bStop) return;
+
 	const float InputScale = Value.Get<float>();
 	if (InputScale == 0.f)
 	{
@@ -183,6 +202,8 @@ void AActionPlayerBase::OnIA_Move(const FInputActionValue& Value)
 
 void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 {
+	if (bStop) return;
+
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
 	if (TriggerEvent == ETriggerEvent::Completed)
 	{
@@ -204,6 +225,8 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 
 void AActionPlayerBase::OnIA_Shoot(const FInputActionValue& Value)
 {
+	if (bStop) return;
+
 	const bool bPress = Value.Get<bool>();
 	UE_LOG(LogPlayerInput, Display, TEXT("Shoot: %s"), bPress ? TEXT("Pressed") : TEXT("Released"));
 	if (bPress)

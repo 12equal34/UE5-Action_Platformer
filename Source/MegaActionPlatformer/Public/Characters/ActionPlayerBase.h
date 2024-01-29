@@ -13,6 +13,8 @@ class UInputAction;
 struct FInputActionValue;
 struct FInputActionInstance;
 
+class AActionEnemyBase;
+
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionPlayerBase : public AActionCharBase
 {
@@ -37,6 +39,10 @@ protected:
 	void EndShoot();
 
 	void RestoreShotEnergy();
+
+	void OnPlayerBeginOverlapEnemy(AActionEnemyBase& EnemyActionChar);
+
+	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar) override;
 
 private:
 	/** a cached pointer to a player controller */

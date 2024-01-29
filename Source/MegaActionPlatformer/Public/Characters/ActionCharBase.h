@@ -27,11 +27,24 @@ public:
 	FORCEINLINE UHPComponent* GetHPComponent() const { return HPComponent; }
 	FORCEINLINE UMaterialInstanceDynamic& GetSpriteMaterialDynamic() const { check(SpriteMaterialDynamic); return *SpriteMaterialDynamic; }
 
+	void OnKnockbacked(float KnockbackTime);
+
+protected:
+	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar);
+
+private:
 	UFUNCTION()
 	void OnAppliedAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
 	void OnStartedDying();
 	void OnFinishedDying();
+	void FinishStop();
+
+	UFUNCTION()
+	void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+protected:
+	bool bStop;
 
 private:
 	void PlayDestructionVFX();
@@ -50,6 +63,10 @@ private:
 
 	UPROPERTY(Category=Animation,VisibleAnywhere)
 	bool bDead;
+
+	float InitialFallingLateralFriction;
+
+	FTimerHandle FinishStopTimer;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> SpriteMaterialDynamic;

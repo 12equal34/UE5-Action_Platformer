@@ -23,6 +23,7 @@ AActionCharBase::AActionCharBase()
 	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
 	check(CapsuleComp);
 	CapsuleComp->SetCapsuleHalfHeight(60.f);
+	CapsuleComp->SetCollisionProfileName(TEXT("ActionChar"));
 
 	UCharacterMovementComponent* CharMovement = GetCharacterMovement();
 	check(CharMovement);
@@ -58,6 +59,10 @@ void AActionCharBase::BeginPlay()
 
 	SpriteMaterialDynamic = GetSprite()->CreateDynamicMaterialInstance(0);
 	check(SpriteMaterialDynamic);
+
+	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AActionCharBase::OnCapsuleBeginOverlap);
+
+	InitialFallingLateralFriction = GetCharacterMovement()->FallingLateralFriction;
 }
 
 void AActionCharBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -93,6 +98,32 @@ void AActionCharBase::OnStartedDying()
 void AActionCharBase::OnFinishedDying()
 {
 	Destroy();
+}
+
+void AActionCharBase::FinishStop()
+{
+	GetCharacterMovement()->FallingLateralFriction = InitialFallingLateralFriction;
+	bStop = false;
+}
+
+void AActionCharBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
+{
+	if (AActionCharBase* OtherActionChar = Cast<AActionCharBase>(OtherActor))
+	{
+		OnActionCharBeginOverlap(*OtherActionChar);
+	}
+}
+
+void AActionCharBase::OnKnockbacked(float KnockbackTime)
+{
+	GetCharacterMovement()->FallingLateralFriction = 0.f;
+	bStop = true;
+	check(KnockbackTime > 0.f);
+	GetWorldTimerManager().SetTimer(FinishStopTimer, this, &AActionCharBase::FinishStop, KnockbackTime, false);
+}
+
+void AActionCharBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)
+{
 }
 
 void AActionCharBase::PlayDestructionVFX()
