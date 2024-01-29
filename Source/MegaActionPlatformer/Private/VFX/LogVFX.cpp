@@ -1,0 +1,3 @@
+#include "VFX/LogVFX.h"
+
+DEFINE_LOG_CATEGORY(LogVFX);
