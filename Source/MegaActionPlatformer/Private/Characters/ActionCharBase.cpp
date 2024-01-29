@@ -8,12 +8,14 @@
 #include "Factions/ActionFactionComponent.h"
 #include "VFX/PaperDestructionVFX.h"
 #include "Combat/HPComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "VFX/FlashComponent.h"
 
 AActionCharBase::AActionCharBase()
 {
 	UPaperFlipbookComponent* MySprite = GetSprite();
 	check(MySprite);
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedLitSpriteMaterial.MaskedLitSpriteMaterial"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Game/MegaActionPlatformer/Materials/MI_CustomLitSpriteMaterial.MI_CustomLitSpriteMaterial"));
 	check(MaskedMaterialRef.Succeeded());
 	MySprite->SetMaterial(0, MaskedMaterialRef.Object);
 	MySprite->SetCastShadow(true);
@@ -40,6 +42,9 @@ AActionCharBase::AActionCharBase()
 
 	HPComponent = CreateDefaultSubobject<UHPComponent>(TEXT("HP"));
 	check(HPComponent);
+
+	HitFlashComponent = CreateDefaultSubobject<UFlashComponent>(TEXT("HitFlash"));
+	check(HitFlashComponent);
 }
 
 void AActionCharBase::BeginPlay()
@@ -50,6 +55,9 @@ void AActionCharBase::BeginPlay()
 
 	HPComponent->OnHPBecameZero.BindUObject(this, &AActionCharBase::OnStartedDying);
 	bDead = HPComponent->IsLeft();
+
+	SpriteMaterialDynamic = GetSprite()->CreateDynamicMaterialInstance(0);
+	check(SpriteMaterialDynamic);
 }
 
 void AActionCharBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -72,6 +80,7 @@ void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const
 	if (Damage > 0.f)
 	{
 		HPComponent->Injure(Damage);
+		PlayHitFlashVFX();
 	}
 }
 
@@ -96,4 +105,9 @@ void AActionCharBase::PlayDestructionVFX()
 	Params.bNoFail = true;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	APaperDestructionVFX* DestructionVFX = World->SpawnActor<APaperDestructionVFX>(DestructionVfxClass.Get(), GetActorTransform(), Params);
+}
+
+void AActionCharBase::PlayHitFlashVFX()
+{
+	HitFlashComponent->PlayFromStart();
 }

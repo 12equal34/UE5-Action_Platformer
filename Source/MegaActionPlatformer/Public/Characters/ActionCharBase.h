@@ -25,6 +25,7 @@ public:
 
 	FORCEINLINE UActionFactionComponent* GetFactionComponent() const { return FactionComponent; }
 	FORCEINLINE UHPComponent* GetHPComponent() const { return HPComponent; }
+	FORCEINLINE UMaterialInstanceDynamic& GetSpriteMaterialDynamic() const { check(SpriteMaterialDynamic); return *SpriteMaterialDynamic; }
 
 	UFUNCTION()
 	void OnAppliedAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
@@ -34,15 +35,23 @@ public:
 
 private:
 	void PlayDestructionVFX();
+	void PlayHitFlashVFX();
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(Category=Combat,VisibleAnywhere)
+	TObjectPtr<UHPComponent> HPComponent;
+
+	UPROPERTY(Category=Combat,VisibleAnywhere)
 	TObjectPtr<UActionFactionComponent> FactionComponent;
 
 	UPROPERTY(Category=VFX,EditDefaultsOnly)
 	TSubclassOf<class APaperDestructionVFX> DestructionVfxClass;
 
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UHPComponent> HPComponent;
+	UPROPERTY(Category=VFX,VisibleAnywhere)
+	TObjectPtr<class UFlashComponent> HitFlashComponent;
 
+	UPROPERTY(Category=Animation,VisibleAnywhere)
 	bool bDead;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> SpriteMaterialDynamic;
 };
