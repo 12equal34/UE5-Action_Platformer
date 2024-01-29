@@ -8,7 +8,6 @@
 #include "Factions/ActionFactionComponent.h"
 #include "VFX/PaperDestructionVFX.h"
 #include "Combat/HPComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "VFX/FlashComponent.h"
 
 AActionCharBase::AActionCharBase()
