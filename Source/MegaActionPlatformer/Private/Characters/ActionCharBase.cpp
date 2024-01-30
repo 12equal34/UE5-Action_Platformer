@@ -3,6 +3,7 @@
 
 #include "Characters/ActionCharBase.h"
 #include "PaperFlipbookComponent.h"
+#include "PaperZDAnimInstance.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Factions/ActionFactionComponent.h"
@@ -104,6 +105,7 @@ void AActionCharBase::FinishStop()
 {
 	GetCharacterMovement()->FallingLateralFriction = InitialFallingLateralFriction;
 	bStop = false;
+	bHurt = false;
 }
 
 void AActionCharBase::FinishInvincible()
@@ -124,6 +126,10 @@ void AActionCharBase::OnKnockbacked(float KnockbackTime)
 {
 	GetCharacterMovement()->FallingLateralFriction = 0.f;
 	bStop = true;
+
+	GetAnimInstance()->JumpToNode(TEXT("JumpHurt"));
+	bHurt = true;
+
 	check(KnockbackTime > 0.f);
 	GetWorldTimerManager().SetTimer(FinishStopTimer, this, &AActionCharBase::FinishStop, KnockbackTime, false);
 }

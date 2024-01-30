@@ -91,9 +91,10 @@ void UFlashComponent::TickComponent(float DeltaTime,ELevelTick TickType,FActorCo
 	if (bPlaying)
 	{
 		// const float OldTime = Time;
-		Time += DeltaTime * PlayRate;
+		Time += DeltaTime;
 
-		if (Time > TimeLength)
+		const float Pos = Time * PlayRate;
+		if (Pos > 1.f)
 		{
 			SetFlashColor(FLinearColor(0.f,0.f,0.f,0.f));
 			SetFlashPower(0.f);
@@ -104,10 +105,10 @@ void UFlashComponent::TickComponent(float DeltaTime,ELevelTick TickType,FActorCo
 		}
 		else
 		{
-			const FLinearColor NewFlashColor = FlashColorCurve->GetLinearColorValue(Time);
+			const FLinearColor NewFlashColor = FlashColorCurve->GetLinearColorValue(Pos);
 			SetFlashColor(NewFlashColor);
 
-			const float NewFlashPower = FlashPowerFloatCurve->GetFloatValue(Time);
+			const float NewFlashPower = FlashPowerFloatCurve->GetFloatValue(Pos);
 			SetFlashPower(NewFlashPower);
 		}
 	}
