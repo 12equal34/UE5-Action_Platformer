@@ -5,71 +5,143 @@
 #include "Curves/CurveFloat.h"
 #include "Characters/ActionCharBase.h"
 
+/*********************************************************************************************************************************/
+/** FFlashInfo */
+
+float FFlashInfo::GetTimeLength() const
+{
+	return TimeLength;
+}
+
+void FFlashInfo::SetTime(float InTime)
+{
+	Time = InTime;
+}
+
+void FFlashInfo::Tick(float DeltaTime, UMaterialInstanceDynamic& FlashedMaterialRef)
+{
+	if (!bPlaying) return;
+
+	check(DeltaTime > 0.f);
+	Time += DeltaTime;
+
+	float EndTime = 0.f;
+	if (CurveTimeRatio == EFlashCurveTimeRatio::EFCTR_Proportional)
+	{
+		PlayRate = 1.f / TimeLength;
+		EndTime = 1.f;
+	}
+	else if (CurveTimeRatio == EFlashCurveTimeRatio::EFCTR_Absolute)
+	{
+		EndTime = TimeLength;
+	}
+
+	check(PlayRate > 0.f);
+	const float Position = Time * PlayRate;
+	
+	if (Position > EndTime)
+	{
+		// Finish to flash the material.
+		FlashedMaterialRef.SetVectorParameterValue(MaterialColorParamName, FLinearColor(0.f,0.f,0.f,0.f));
+		FlashedMaterialRef.SetScalarParameterValue(MaterialFlashPowerParamName, 0.f);
+
+		bPlaying = false;
+
+		UE_LOG(LogVFX, Display, TEXT("The flash is finished."));
+	}
+	else
+	{
+		SetFlashColor(Position, FlashedMaterialRef);
+		SetFlashPower(Position, FlashedMaterialRef);
+	}
+}
+
+void FFlashInfo::SetTimeLength(float InTimeLength)
+{
+	checkf(InTimeLength > 0.f, TEXT("TimeLength should be a positive number."));
+	TimeLength = InTimeLength;
+}
+
+void FFlashInfo::SetPlayRate(float InPlayRate)
+{
+	check(InPlayRate > 0.f);
+	PlayRate = InPlayRate;
+}
+
+void FFlashInfo::SetFlashColor(float Position, UMaterialInstanceDynamic& FlashedMaterialRef)
+{
+	const FLinearColor NewFlashColor = FlashColorCurve->GetLinearColorValue(Position);
+	FlashedMaterialRef.SetVectorParameterValue(MaterialColorParamName, NewFlashColor);
+}
+
+void FFlashInfo::SetFlashPower(float Position, UMaterialInstanceDynamic& FlashedMaterialRef)
+{
+	const float NewFlashPower = FlashPowerFloatCurve->GetFloatValue(Position);
+	FlashedMaterialRef.SetScalarParameterValue(MaterialFlashPowerParamName, NewFlashPower);
+}
+
+/*********************************************************************************************************************************/
+/** UFlashComponent */
+
 UFlashComponent::UFlashComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
-
-	static ConstructorHelpers::FObjectFinder<UCurveLinearColor> FlashColorCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_FlashColorAterHit_Color.C_FlashColorAterHit_Color"));
-	check(FlashColorCurveRef.Succeeded());
-	FlashColorCurve = FlashColorCurveRef.Object;
-
-	static ConstructorHelpers::FObjectFinder<UCurveFloat> FlashPowerFloatCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_FlashPowerAterHit_Float.C_FlashPowerAterHit_Float"));
-	check(FlashPowerFloatCurveRef.Succeeded());
-	FlashPowerFloatCurve = FlashPowerFloatCurveRef.Object;
-
-	FlashColorName = TEXT("FlashColor");
-	FlashPowerName = TEXT("FlashPower");
 }
 
 void UFlashComponent::Play()
 {
 	Activate();
-	bPlaying = true;
+	FlashInfoMap[CurrentInfo].bPlaying = true;
 
-	UE_LOG(LogVFX, Display, TEXT("The flash played."));
+	UE_LOG(LogVFX, Display, TEXT("The %s played."), *CurrentInfo.ToString());
+}
+
+void UFlashComponent::Play(const FName& InFlashInfo)
+{
+	SetFlashInfo(InFlashInfo);
+	Play();
 }
 
 void UFlashComponent::PlayFromStart()
 {
 	Play();
-	Time = 0.f;
+	FlashInfoMap[CurrentInfo].Time = 0.f;
 
-	UE_LOG(LogVFX, Display, TEXT("The flash played from start."));
+	UE_LOG(LogVFX, Display, TEXT("The %s played from start."), *CurrentInfo.ToString());
+}
+
+void UFlashComponent::PlayFromStart(const FName& InFlashInfo)
+{
+	SetFlashInfo(InFlashInfo);
+	PlayFromStart();
 }
 
 void UFlashComponent::Stop()
 {
-	bPlaying = false;
+	FlashInfoMap[CurrentInfo].bPlaying = false;
 
-	UE_LOG(LogVFX, Display, TEXT("The flash stopped."));
+	UE_LOG(LogVFX, Display, TEXT("The %s stopped."), *CurrentInfo.ToString());
 }
 
 bool UFlashComponent::IsPlaying() const
 {
-	return bPlaying;
+	return FlashInfoMap[CurrentInfo].bPlaying;
 }
 
-void UFlashComponent::SetTime(float InTime)
+void UFlashComponent::SetFlashInfo(const FName& InFlashInfo)
 {
-	Time = InTime;
-}
+	if (CurrentInfo == InFlashInfo) return;
 
-void UFlashComponent::SetTimeLength(float InTimeLength)
-{
-	check(InTimeLength > 0.f);
-	TimeLength = InTimeLength;
-}
-
-void UFlashComponent::SetFlashColorName(FName InName)
-{
-	FlashColorName = InName;
-}
-
-void UFlashComponent::SetFlashPowerName(FName InName)
-{
-	FlashPowerName = InName;
+	if (FlashInfoMap.Contains(InFlashInfo))
+	{
+		CurrentInfo = InFlashInfo;
+	}
+	else
+	{
+		UE_LOG(LogVFX, Warning, TEXT("FlashInfoMap does NOT contain the FlashInfo inputed."));
+	}
 }
 
 void UFlashComponent::Activate(bool bReset)
@@ -84,34 +156,19 @@ void UFlashComponent::Deactivate()
 	PrimaryComponentTick.SetTickFunctionEnable(false);
 }
 
+void UFlashComponent::AddFlashInfo(const FName& InFlashInfoName, FFlashInfo InFlashInfo)
+{
+	FlashInfoMap.Add(InFlashInfoName, MoveTemp(InFlashInfo));
+}
+
 void UFlashComponent::TickComponent(float DeltaTime,ELevelTick TickType,FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (bPlaying)
-	{
-		// const float OldTime = Time;
-		Time += DeltaTime;
+	FFlashInfo& CurrentFlash = FlashInfoMap[CurrentInfo];
+	UMaterialInstanceDynamic& FlashedMaterial = OwningActionChar->GetSpriteMaterialDynamic();
 
-		const float Pos = Time * PlayRate;
-		if (Pos > 1.f)
-		{
-			SetFlashColor(FLinearColor(0.f,0.f,0.f,0.f));
-			SetFlashPower(0.f);
-
-			bPlaying = false;
-
-			UE_LOG(LogVFX, Display, TEXT("The flash is finished."));
-		}
-		else
-		{
-			const FLinearColor NewFlashColor = FlashColorCurve->GetLinearColorValue(Pos);
-			SetFlashColor(NewFlashColor);
-
-			const float NewFlashPower = FlashPowerFloatCurve->GetFloatValue(Pos);
-			SetFlashPower(NewFlashPower);
-		}
-	}
+	CurrentFlash.Tick(DeltaTime, FlashedMaterial);
 }
 
 void UFlashComponent::BeginPlay()
@@ -120,19 +177,5 @@ void UFlashComponent::BeginPlay()
 
 	OwningActionChar = Cast<AActionCharBase>(GetOwner());
 	check(OwningActionChar);
-
-	checkf(TimeLength > 0.f, TEXT("TimeLength should be a positive number."));
-
-	PlayRate = 1.f / TimeLength;
-	check(PlayRate > 0.f);
 }
 
-void UFlashComponent::SetFlashColor(FLinearColor FlashColor)
-{
-	OwningActionChar->GetSpriteMaterialDynamic().SetVectorParameterValue(FlashColorName, FlashColor);
-}
-
-void UFlashComponent::SetFlashPower(float FlashPower)
-{
-	OwningActionChar->GetSpriteMaterialDynamic().SetScalarParameterValue(FlashPowerName, FlashPower);
-}

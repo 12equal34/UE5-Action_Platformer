@@ -10,6 +10,8 @@
 #include "VFX/PaperDestructionVFX.h"
 #include "Combat/HPComponent.h"
 #include "VFX/FlashComponent.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveFloat.h"
 
 AActionCharBase::AActionCharBase()
 {
@@ -34,18 +36,39 @@ AActionCharBase::AActionCharBase()
 	CharMovement->JumpZVelocity = 600.f;
 	CharMovement->AirControl = 0.7f;
 
+	HPComponent = CreateDefaultSubobject<UHPComponent>(TEXT("HP"));
+	check(HPComponent);
+
 	FactionComponent = CreateDefaultSubobject<UActionFactionComponent>(TEXT("Faction"));
 	check(FactionComponent);
 
 	static ConstructorHelpers::FClassFinder<APaperDestructionVFX> DestructionVfxClassRef(TEXT("/Game/MegaActionPlatformer/Blueprints/Characters/BP_DestructionVFX_BASE.BP_DestructionVFX_BASE_C"));
 	check(DestructionVfxClassRef.Succeeded());
+
 	DestructionVfxClass = DestructionVfxClassRef.Class;
 
-	HPComponent = CreateDefaultSubobject<UHPComponent>(TEXT("HP"));
-	check(HPComponent);
+	FlashComponent = CreateDefaultSubobject<UFlashComponent>(TEXT("HitFlash"));
+	check(FlashComponent);
 
-	HitFlashComponent = CreateDefaultSubobject<UFlashComponent>(TEXT("HitFlash"));
-	check(HitFlashComponent);
+	/** 
+	 * Prepare curves for Flash VFXs. 
+	*/ 
+	static ConstructorHelpers::FObjectFinder<UCurveLinearColor> HitFlashColorCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_FlashColorAterHit_Color.C_FlashColorAterHit_Color"));
+	check(HitFlashColorCurveRef.Succeeded());
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat> HitFlashPowerFloatCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_FlashPowerAterHit_Float.C_FlashPowerAterHit_Float"));
+	check(HitFlashPowerFloatCurveRef.Succeeded());
+
+	// Add a HitFlash Info.
+	FFlashInfo HitFlashInfo;
+	HitFlashInfo.CurveTimeRatio = EFlashCurveTimeRatio::EFCTR_Proportional;
+	HitFlashInfo.SetTimeLength(0.3f);
+	HitFlashInfo.MaterialColorParamName = TEXT("FlashColor");
+	HitFlashInfo.FlashColorCurve = HitFlashColorCurveRef.Object;
+	HitFlashInfo.MaterialFlashPowerParamName = TEXT("FlashPower");
+	HitFlashInfo.FlashPowerFloatCurve = HitFlashPowerFloatCurveRef.Object;
+	HitFlashName = TEXT("HitFlash");
+	FlashComponent->AddFlashInfo(HitFlashName, MoveTemp(HitFlashInfo));
 }
 
 void AActionCharBase::BeginPlay()
@@ -85,7 +108,7 @@ void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const
 	if (Damage > 0.f)
 	{
 		HPComponent->Injure(Damage);
-		HitFlashComponent->PlayFromStart();
+		FlashComponent->PlayFromStart(HitFlashName);
 		OnInvinciblized();
 	}
 }

@@ -8,6 +8,7 @@
 
 class UActionFactionComponent;
 class UHPComponent;
+class UFlashComponent;
 
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionCharBase : public APaperZDCharacter
@@ -26,6 +27,7 @@ public:
 	FORCEINLINE UActionFactionComponent* GetFactionComponent() const { return FactionComponent; }
 	FORCEINLINE UHPComponent* GetHPComponent() const { return HPComponent; }
 	FORCEINLINE UMaterialInstanceDynamic& GetSpriteMaterialDynamic() const { check(SpriteMaterialDynamic); return *SpriteMaterialDynamic; }
+	FORCEINLINE UFlashComponent* GetFlashComponent() const { return FlashComponent; }
 
 	void OnKnockbacked(float KnockbackTime);
 	void OnInvinciblized();
@@ -57,6 +59,8 @@ protected:
 	bool bStop;
 	bool bInvincible;
 
+	FName HitFlashName;
+
 private:
 	void PlayDestructionVFX();
 
@@ -70,7 +74,7 @@ private:
 	TSubclassOf<class APaperDestructionVFX> DestructionVfxClass;
 
 	UPROPERTY(Category=VFX,VisibleAnywhere)
-	TObjectPtr<class UFlashComponent> HitFlashComponent;
+	TObjectPtr<UFlashComponent> FlashComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> SpriteMaterialDynamic;

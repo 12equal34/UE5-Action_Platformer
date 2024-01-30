@@ -55,10 +55,14 @@ private:
 	UPROPERTY(Category=Camera,VisibleAnywhere)
 	TObjectPtr<class UCameraComponent> CameraComponent;
 
+	FName ChargeFlashName;
+
 private:
 	void OnIA_Move(const FInputActionValue& Value);
 	void OnIA_Jump(const FInputActionInstance& Instance);
 	void OnIA_Shoot(const FInputActionValue& Value);
+	void OnIA_ChargeShoot(const FInputActionInstance& Instance);
+
 	void AddDefaultInputMappingContext();
 
 	UPROPERTY(Category=Input,EditDefaultsOnly)
@@ -98,4 +102,10 @@ private:
 
 	UPROPERTY(Category=Combat,VisibleInstanceOnly,Transient)
 	int32 ShotEnergy;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	float FullChargeTime = 2.f;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	float HalfChargeTime = 1.f;
 };

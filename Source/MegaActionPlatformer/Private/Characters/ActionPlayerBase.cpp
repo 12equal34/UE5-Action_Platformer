@@ -16,6 +16,9 @@
 #include "PaperFlipbookComponent.h"
 #include "Factions/ActionFactionComponent.h"
 #include "Combat/HPComponent.h"
+#include "VFX/FlashComponent.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveFloat.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerInput);
 
@@ -72,6 +75,28 @@ AActionPlayerBase::AActionPlayerBase()
 
 	UHPComponent* HPComp = GetHPComponent();
 	HPComp->SetMaximumHP(100.f);
+
+	/** 
+	* Prepare curves for Flash VFXs. 
+	*/ 
+	static ConstructorHelpers::FObjectFinder<UCurveLinearColor> ChargeFlashColorCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_ChargeFlash_Color.C_ChargeFlash_Color"));
+	check(ChargeFlashColorCurveRef.Succeeded());
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat> ChargeFlashPowerFloatCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_ChargeFlash_Float.C_ChargeFlash_Float"));
+	check(ChargeFlashPowerFloatCurveRef.Succeeded());
+
+	UFlashComponent* FlashComp = GetFlashComponent();
+
+	// Add a ChargeFlash Info.
+	FFlashInfo ChargeFlashInfo;
+	ChargeFlashInfo.CurveTimeRatio = EFlashCurveTimeRatio::EFCTR_Proportional;
+	ChargeFlashInfo.SetTimeLength(0.3f);
+	ChargeFlashInfo.MaterialColorParamName = TEXT("FlashColor");
+	ChargeFlashInfo.FlashColorCurve = ChargeFlashColorCurveRef.Object;
+	ChargeFlashInfo.MaterialFlashPowerParamName = TEXT("FlashPower");
+	ChargeFlashInfo.FlashPowerFloatCurve = ChargeFlashPowerFloatCurveRef.Object;
+	ChargeFlashName = TEXT("ChargeFlash");
+	FlashComp->AddFlashInfo(ChargeFlashName, MoveTemp(ChargeFlashInfo));
 }
 
 void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -90,6 +115,7 @@ void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Jump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Jump);
 		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_ChargeShoot);
 	}
 }
 
@@ -233,6 +259,28 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionValue& Value)
 	{
 		Shoot();
 	}
+}
+
+void AActionPlayerBase::OnIA_ChargeShoot(const FInputActionInstance& Instance)
+{
+	const float ElapsedTime = Instance.GetElapsedTime();
+
+	UFlashComponent* FlashComp = GetFlashComponent();
+	check(FlashComp);
+
+	if (ElapsedTime < HalfChargeTime)
+	{
+		UE_LOG(LogPlayerInput, Display, TEXT("Charge Shoot: No enough charged."));
+	}
+	else if (ElapsedTime < FullChargeTime)
+	{
+		UE_LOG(LogPlayerInput, Display, TEXT("Charge Shoot: Half charged."));
+	}
+	else
+	{
+		UE_LOG(LogPlayerInput, Display, TEXT("Charge Shoot: Full charged."));
+	}
+	UE_LOG(LogPlayerInput, Display, TEXT("Charge Shoot: %f"), ElapsedTime);
 }
 
 void AActionPlayerBase::AddDefaultInputMappingContext()
