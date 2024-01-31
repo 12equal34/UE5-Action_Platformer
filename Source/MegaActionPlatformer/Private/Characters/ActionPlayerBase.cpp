@@ -89,11 +89,14 @@ AActionPlayerBase::AActionPlayerBase()
 
 	// Add a ChargeFlash Info.
 	FFlashInfo ChargeFlashInfo;
-	ChargeFlashInfo.CurveTimeRatio = EFlashCurveTimeRatio::EFCTR_Proportional;
-	ChargeFlashInfo.SetTimeLength(0.3f);
-	ChargeFlashInfo.MaterialColorParamName = TEXT("FlashColor");
-	ChargeFlashInfo.FlashColorCurve = ChargeFlashColorCurveRef.Object;
+	ChargeFlashInfo.PlayPurpose = EFlashInfoPlayPurpose::EFIPP_WantsFixPlayTime;
+	ChargeFlashInfo.bLooping = true;
+	ChargeFlashInfo.MinCurvePos = 0.f;
+	ChargeFlashInfo.MaxCurvePos = 1.f;
+	ChargeFlashInfo.WantedPlayTime = 0.3f;
+	ChargeFlashInfo.MaterialColorParamName      = TEXT("FlashColor");
 	ChargeFlashInfo.MaterialFlashPowerParamName = TEXT("FlashPower");
+	ChargeFlashInfo.FlashColorCurve      = ChargeFlashColorCurveRef.Object;
 	ChargeFlashInfo.FlashPowerFloatCurve = ChargeFlashPowerFloatCurveRef.Object;
 	ChargeFlashName = TEXT("ChargeFlash");
 	FlashComp->AddFlashInfo(ChargeFlashName, MoveTemp(ChargeFlashInfo));
@@ -114,8 +117,12 @@ void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Jump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Jump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Jump);
+
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Started, this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Ongoing, this, &AActionPlayerBase::OnIA_Shoot);
 		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_ChargeShoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Canceled, this, &AActionPlayerBase::OnIA_Shoot);
 	}
 }
 
@@ -141,8 +148,14 @@ void AActionPlayerBase::BeginPlay()
 	RestoreShotEnergyIndex = RestoringShotEnergyTimers->Capacity() - 1;
 }
 
-void AActionPlayerBase::Shoot()
+void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjectileClass)
 {
+	if (InProjectileClass.Get() == nullptr)
+	{
+		UE_LOG(LogPlayer,Warning, TEXT("Failed to shoot. The player have not the projectile class."));
+		return;
+	}
+
 	if (ShotEnergy <= 0)
 	{
 		UE_LOG(LogPlayer,Display, TEXT("Failed to shoot. The player have no shot energy."));
@@ -161,7 +174,7 @@ void AActionPlayerBase::Shoot()
 	Params.Owner = this;
 	Params.Instigator = this;
 	APlayerProjectileBase* Projectile = World->SpawnActor<APlayerProjectileBase>(
-		PlayerProjectileClass.Get(),
+		InProjectileClass.Get(),
 		Muzzle->GetComponentTransform(),
 		Params);
 	UE_LOG(LogPlayer,Display, TEXT("Shoot! : %s is spawned by %s"), *Projectile->GetName(), *GetName());
@@ -175,13 +188,33 @@ void AActionPlayerBase::Shoot()
 	TM.SetTimer(Timers[RestoreShotEnergyIndex],this,&AActionPlayerBase::RestoreShotEnergy,ShotEnergyRestoreTime,false);
 
 	// for character shooting animations.
-	bShooting = true;
-	TM.SetTimer(ShootingTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
+	//bShooting = true;
+	//TM.SetTimer(ShootingTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
 }
 
 void AActionPlayerBase::EndShoot()
 {
 	bShooting = false;
+}
+
+void AActionPlayerBase::ChargeShotEnergy()
+{
+}
+
+void AActionPlayerBase::StartChargeShotEnergy()
+{
+	GetFlashComponent()->PlayFlashFromStart(ChargeFlashName);
+	bCharging = true;
+}
+
+void AActionPlayerBase::EndChargeShotEnergy()
+{
+	UFlashComponent* FlashComp = GetFlashComponent();
+	if (FlashComp->CurrentFlashIs(ChargeFlashName))
+	{
+		FlashComp->FinishFlash();
+	}
+	bCharging = false;
 }
 
 void AActionPlayerBase::RestoreShotEnergy()
@@ -249,38 +282,60 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 	}
 }
 
-void AActionPlayerBase::OnIA_Shoot(const FInputActionValue& Value)
+void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 {
 	if (bStop) return;
 
-	const bool bPress = Value.Get<bool>();
-	UE_LOG(LogPlayerInput, Display, TEXT("Shoot: %s"), bPress ? TEXT("Pressed") : TEXT("Released"));
-	if (bPress)
+	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
+	if (TriggerEvent == ETriggerEvent::Completed)
 	{
-		Shoot();
-	}
-}
+		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed"));
 
-void AActionPlayerBase::OnIA_ChargeShoot(const FInputActionInstance& Instance)
-{
-	const float ElapsedTime = Instance.GetElapsedTime();
+		if (bCharging)
+		{
+			EndChargeShotEnergy();
 
-	UFlashComponent* FlashComp = GetFlashComponent();
-	check(FlashComp);
+			const float ElapsedTime = Instance.GetElapsedTime();
+			if (ElapsedTime < FullChargeTime)
+			{
+				Shoot(HalfChargedProjectileClass);
+			}
+			else
+			{
+				Shoot(FullChargedProjectileClass);
+			}
+		}
+		else
+		{
+			Shoot(NormalProjectileClass);
+		}
 
-	if (ElapsedTime < HalfChargeTime)
-	{
-		UE_LOG(LogPlayerInput, Display, TEXT("Charge Shoot: No enough charged."));
+		GetWorldTimerManager().SetTimer(ShootingTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
 	}
-	else if (ElapsedTime < FullChargeTime)
+	else if (TriggerEvent == ETriggerEvent::Canceled)
 	{
-		UE_LOG(LogPlayerInput, Display, TEXT("Charge Shoot: Half charged."));
+		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Canceled"));
 	}
-	else
+	else if (TriggerEvent == ETriggerEvent::Triggered)
 	{
-		UE_LOG(LogPlayerInput, Display, TEXT("Charge Shoot: Full charged."));
+		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Triggered"));
 	}
-	UE_LOG(LogPlayerInput, Display, TEXT("Charge Shoot: %f"), ElapsedTime);
+	else if (TriggerEvent == ETriggerEvent::Ongoing)
+	{
+		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing"));
+
+		const float ElapsedTime = Instance.GetElapsedTime();
+		if (ElapsedTime >= HalfChargeTime && !bCharging)
+		{
+			StartChargeShotEnergy();
+		}
+	}
+	else if (TriggerEvent == ETriggerEvent::Started)
+	{
+		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Started"));
+		bShooting = true;
+		GetWorldTimerManager().ClearTimer(ShootingTimer);
+	}
 }
 
 void AActionPlayerBase::AddDefaultInputMappingContext()

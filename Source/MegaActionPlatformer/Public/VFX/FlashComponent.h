@@ -6,27 +6,17 @@
 #include "Components/ActorComponent.h"
 #include "FlashComponent.generated.h"
 
-class AActionCharBase;
-
 UENUM()
-enum class EFlashCurveTimeRatio
+enum class EFlashInfoPlayPurpose
 {
-	EFCTR_Absolute,
-	EFCTR_Proportional
+	EFIPP_WantsFixPlayTime,
+	EFIPP_WantsUsePlayRate
 };
 
 USTRUCT()
 struct FFlashInfo
 {
 	GENERATED_BODY()
-
-	FFlashInfo() : 
-		CurveTimeRatio(EFlashCurveTimeRatio::EFCTR_Absolute),
-		Time(0.f), 
-		bPlaying(false), 
-		TimeLength(1.f),
-		PlayRate(1.f)
-	{}
 
 	UPROPERTY(Category=VFX,EditDefaultsOnly)
 	FName MaterialColorParamName;
@@ -41,32 +31,39 @@ struct FFlashInfo
 	TObjectPtr<UCurveFloat> FlashPowerFloatCurve;
 
 	UPROPERTY(Category=VFX,EditDefaultsOnly)
-	EFlashCurveTimeRatio CurveTimeRatio;
+	EFlashInfoPlayPurpose PlayPurpose = EFlashInfoPlayPurpose::EFIPP_WantsFixPlayTime;
 
-	UPROPERTY(Category=VFX,VisibleInstanceOnly)
-	float Time;
-	
-	UPROPERTY(Category=VFX,VisibleInstanceOnly)
-	bool bPlaying;
+	UPROPERTY(Category=VFX,EditDefaultsOnly)
+	float MinCurvePos = 0.f;
 
-	float GetTimeLength() const;
+	UPROPERTY(Category=VFX,EditDefaultsOnly)
+	float MaxCurvePos = 1.f;
 
-	void SetTime(float InTime);
-	void SetTimeLength(float InTimeLength);
-	void SetPlayRate(float InPlayRate);
+	UPROPERTY(Category=VFX,EditDefaultsOnly,meta=(EditCondition="PlayPurpose==EFlashInfoPlayPurpose::EFIPP_WantsFixPlayTime",ClampMin="0.01"))
+	float WantedPlayTime = 1.f;
+
+	UPROPERTY(Category=VFX,EditDefaultsOnly,meta=(EditCondition="PlayPurpose==EFlashInfoPlayPurpose::EFIPP_WantsUsePlayRate",ClampMin="0.01"))
+	float WantedPlayRate = 1.f;
+
+	UPROPERTY(Category=VFX,EditDefaultsOnly)
+	bool bLooping = false;
+
+	UPROPERTY(Transient,Category=VFX,VisibleInstanceOnly)
+	bool bPlaying = false;
+
+	UPROPERTY(Transient,Category=VFX,VisibleInstanceOnly)
+	float CurvePos;
+
 	void SetFlashColor(float Position, UMaterialInstanceDynamic& FlashedMaterialRef);
+
 	void SetFlashPower(float Position, UMaterialInstanceDynamic& FlashedMaterialRef);
 
 	void Tick(float DeltaTime, UMaterialInstanceDynamic& FlashedMaterialRef);
 
-private:
-	/** TimeLength should be always positive. */
-	UPROPERTY(Category=VFX,EditDefaultsOnly)
-	float TimeLength;
-
-	UPROPERTY(Category=VFX,EditDefaultsOnly)
-	float PlayRate;
+	void FinishFlash(UMaterialInstanceDynamic& FlashedMaterialRef);
 };
+
+class AActionCharBase;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MEGAACTIONPLATFORMER_API UFlashComponent : public UActorComponent
@@ -76,16 +73,19 @@ class MEGAACTIONPLATFORMER_API UFlashComponent : public UActorComponent
 public:	
 	UFlashComponent();
 
-	void Play();
-	void Play(const FName& InFlashInfo);
-	void PlayFromStart();
-	void PlayFromStart(const FName& InFlashInfo);
-	void Stop();
+	void PlayFlash();
+	void PlayFlash(const FName& InFlashInfo);
+	void PlayFlashFromStart();
+	void PlayFlashFromStart(const FName& InFlashInfo);
+	void StopFlash();
+	void FinishFlash();
 
+	const FName& GetCurrentInfo() const;
 	bool IsPlaying() const;
+	bool IsLooping() const;
+	bool CurrentFlashIs(const FName& OtherFlashInfo) const;
 
 	void SetFlashInfo(const FName& InFlashInfo);
-
 	void AddFlashInfo(const FName& InFlashInfoName, FFlashInfo InFlashInfo);
 
 	//~ Begin ActorComponent Interface.
@@ -94,6 +94,10 @@ public:
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
 	//~ End ActorComponent Interface.
+
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+#endif
 
 private:
 	UPROPERTY(Transient)

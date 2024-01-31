@@ -8,64 +8,59 @@
 /*********************************************************************************************************************************/
 /** FFlashInfo */
 
-float FFlashInfo::GetTimeLength() const
-{
-	return TimeLength;
-}
-
-void FFlashInfo::SetTime(float InTime)
-{
-	Time = InTime;
-}
-
 void FFlashInfo::Tick(float DeltaTime, UMaterialInstanceDynamic& FlashedMaterialRef)
 {
 	if (!bPlaying) return;
 
 	check(DeltaTime > 0.f);
-	Time += DeltaTime;
 
-	float EndTime = 0.f;
-	if (CurveTimeRatio == EFlashCurveTimeRatio::EFCTR_Proportional)
-	{
-		PlayRate = 1.f / TimeLength;
-		EndTime = 1.f;
-	}
-	else if (CurveTimeRatio == EFlashCurveTimeRatio::EFCTR_Absolute)
-	{
-		EndTime = TimeLength;
-	}
+	const float CurvePosLength = MaxCurvePos - MinCurvePos;
+	checkf(CurvePosLength > 0.f, TEXT("You should set the MinCurvePos value less than MaxCurvePos."));
 
-	check(PlayRate > 0.f);
-	const float Position = Time * PlayRate;
-	
-	if (Position > EndTime)
+	// Find the CurveInterval for a DeltaTime to fit its purpose.
+	float PlayRate = 0.f;
+	if (PlayPurpose == EFlashInfoPlayPurpose::EFIPP_WantsFixPlayTime)
 	{
-		// Finish to flash the material.
-		FlashedMaterialRef.SetVectorParameterValue(MaterialColorParamName, FLinearColor(0.f,0.f,0.f,0.f));
-		FlashedMaterialRef.SetScalarParameterValue(MaterialFlashPowerParamName, 0.f);
-
-		bPlaying = false;
-
-		UE_LOG(LogVFX, Display, TEXT("The flash is finished."));
+		PlayRate = CurvePosLength / WantedPlayTime;
+		check(PlayRate > 0.f);
 	}
-	else
+	else if (PlayPurpose == EFlashInfoPlayPurpose::EFIPP_WantsUsePlayRate)
 	{
-		SetFlashColor(Position, FlashedMaterialRef);
-		SetFlashPower(Position, FlashedMaterialRef);
+		PlayRate = WantedPlayRate;
+		check(PlayRate > 0.f);
 	}
+	else 
+	{ 
+		checkNoEntry();
+	}
+	const float CurveInterval = PlayRate * DeltaTime;
+
+	// Set a current CurvePos. Then flash the material or finish if not loopping and over the max.
+	CurvePos += CurveInterval;
+	if (CurvePos > MaxCurvePos)
+	{
+		if (bLooping)
+		{
+			CurvePos -= CurvePosLength;
+		}
+		else
+		{
+			FinishFlash(FlashedMaterialRef);
+			return;
+		}
+	}
+	SetFlashColor(CurvePos, FlashedMaterialRef);
+	SetFlashPower(CurvePos, FlashedMaterialRef);
 }
 
-void FFlashInfo::SetTimeLength(float InTimeLength)
+void FFlashInfo::FinishFlash(UMaterialInstanceDynamic& FlashedMaterialRef)
 {
-	checkf(InTimeLength > 0.f, TEXT("TimeLength should be a positive number."));
-	TimeLength = InTimeLength;
-}
+	FlashedMaterialRef.SetVectorParameterValue(MaterialColorParamName, FLinearColor(0.f,0.f,0.f,0.f));
+	FlashedMaterialRef.SetScalarParameterValue(MaterialFlashPowerParamName, 0.f);
 
-void FFlashInfo::SetPlayRate(float InPlayRate)
-{
-	check(InPlayRate > 0.f);
-	PlayRate = InPlayRate;
+	bPlaying = false;
+
+	UE_LOG(LogVFX, Display, TEXT("The flash is finished."));
 }
 
 void FFlashInfo::SetFlashColor(float Position, UMaterialInstanceDynamic& FlashedMaterialRef)
@@ -90,7 +85,7 @@ UFlashComponent::UFlashComponent()
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 }
 
-void UFlashComponent::Play()
+void UFlashComponent::PlayFlash()
 {
 	Activate();
 	FlashInfoMap[CurrentInfo].bPlaying = true;
@@ -98,31 +93,43 @@ void UFlashComponent::Play()
 	UE_LOG(LogVFX, Display, TEXT("The %s played."), *CurrentInfo.ToString());
 }
 
-void UFlashComponent::Play(const FName& InFlashInfo)
+void UFlashComponent::PlayFlash(const FName& InFlashInfo)
 {
 	SetFlashInfo(InFlashInfo);
-	Play();
+	PlayFlash();
 }
 
-void UFlashComponent::PlayFromStart()
+void UFlashComponent::PlayFlashFromStart()
 {
-	Play();
-	FlashInfoMap[CurrentInfo].Time = 0.f;
+	PlayFlash();
+	FlashInfoMap[CurrentInfo].CurvePos = FlashInfoMap[CurrentInfo].MinCurvePos;
 
 	UE_LOG(LogVFX, Display, TEXT("The %s played from start."), *CurrentInfo.ToString());
 }
 
-void UFlashComponent::PlayFromStart(const FName& InFlashInfo)
+void UFlashComponent::PlayFlashFromStart(const FName& InFlashInfo)
 {
 	SetFlashInfo(InFlashInfo);
-	PlayFromStart();
+	PlayFlashFromStart();
 }
 
-void UFlashComponent::Stop()
+void UFlashComponent::StopFlash()
 {
 	FlashInfoMap[CurrentInfo].bPlaying = false;
 
 	UE_LOG(LogVFX, Display, TEXT("The %s stopped."), *CurrentInfo.ToString());
+}
+
+void UFlashComponent::FinishFlash()
+{
+	UMaterialInstanceDynamic& FlashedMaterial = OwningActionChar->GetSpriteMaterialDynamic();
+	FlashInfoMap[CurrentInfo].FinishFlash(FlashedMaterial);
+}
+
+const FName& UFlashComponent::GetCurrentInfo() const
+{
+	check(FlashInfoMap.Contains(CurrentInfo) == true);
+	return CurrentInfo;
 }
 
 bool UFlashComponent::IsPlaying() const
@@ -130,18 +137,23 @@ bool UFlashComponent::IsPlaying() const
 	return FlashInfoMap[CurrentInfo].bPlaying;
 }
 
+bool UFlashComponent::IsLooping() const
+{
+	return FlashInfoMap[CurrentInfo].bLooping;
+}
+
+bool UFlashComponent::CurrentFlashIs(const FName& OtherFlashInfo) const
+{
+	return CurrentInfo == OtherFlashInfo;
+}
+
 void UFlashComponent::SetFlashInfo(const FName& InFlashInfo)
 {
 	if (CurrentInfo == InFlashInfo) return;
 
-	if (FlashInfoMap.Contains(InFlashInfo))
-	{
-		CurrentInfo = InFlashInfo;
-	}
-	else
-	{
-		UE_LOG(LogVFX, Warning, TEXT("FlashInfoMap does NOT contain the FlashInfo inputed."));
-	}
+	checkf(FlashInfoMap.Contains(InFlashInfo), TEXT("FlashInfoMap does NOT contain the FlashInfo inputed."));
+
+	CurrentInfo = InFlashInfo;
 }
 
 void UFlashComponent::Activate(bool bReset)
@@ -179,3 +191,37 @@ void UFlashComponent::BeginPlay()
 	check(OwningActionChar);
 }
 
+#if WITH_EDITOR
+void UFlashComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+
+	FProperty* ChangedProperty = PropertyChangedEvent.Property;
+	if (!ChangedProperty) return;
+
+	const FName PropertyName = ChangedProperty->GetFName();
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(FFlashInfo,MinCurvePos) || PropertyName == GET_MEMBER_NAME_CHECKED(FFlashInfo,MaxCurvePos))
+	{
+		for (auto& [Name,FlashInfoRef] : FlashInfoMap)
+		{
+			if (FlashInfoRef.MinCurvePos < FlashInfoRef.MaxCurvePos)
+			{
+				continue;
+			}
+
+			if (FlashInfoRef.MinCurvePos > FlashInfoRef.MaxCurvePos)
+			{
+				UE_LOG(LogTemp,Warning,TEXT("You should set MinCurvePos less than MaxCurvePos. So these just swaped."));
+				Swap(FlashInfoRef.MinCurvePos,FlashInfoRef.MaxCurvePos);
+			}
+			else if (FlashInfoRef.MinCurvePos == FlashInfoRef.MaxCurvePos)
+			{
+				UE_LOG(LogTemp,Warning,TEXT("You can't set MinCurvePos equal to MaxCurvePos. So MaxCurvePos is added by 1.f"));
+				FlashInfoRef.MaxCurvePos = FlashInfoRef.MinCurvePos + 1.f;
+			}
+			FlashInfoRef.CurvePos = FlashInfoRef.MinCurvePos;
+		}
+	}
+}
+#endif

@@ -61,11 +61,14 @@ AActionCharBase::AActionCharBase()
 
 	// Add a HitFlash Info.
 	FFlashInfo HitFlashInfo;
-	HitFlashInfo.CurveTimeRatio = EFlashCurveTimeRatio::EFCTR_Proportional;
-	HitFlashInfo.SetTimeLength(0.3f);
-	HitFlashInfo.MaterialColorParamName = TEXT("FlashColor");
-	HitFlashInfo.FlashColorCurve = HitFlashColorCurveRef.Object;
+	HitFlashInfo.PlayPurpose = EFlashInfoPlayPurpose::EFIPP_WantsFixPlayTime;
+	HitFlashInfo.bLooping = false;
+	HitFlashInfo.MinCurvePos = 0.f;
+	HitFlashInfo.MaxCurvePos = 1.f;
+	HitFlashInfo.WantedPlayTime = 0.3f;
+	HitFlashInfo.MaterialColorParamName      = TEXT("FlashColor");
 	HitFlashInfo.MaterialFlashPowerParamName = TEXT("FlashPower");
+	HitFlashInfo.FlashColorCurve      = HitFlashColorCurveRef.Object;
 	HitFlashInfo.FlashPowerFloatCurve = HitFlashPowerFloatCurveRef.Object;
 	HitFlashName = TEXT("HitFlash");
 	FlashComponent->AddFlashInfo(HitFlashName, MoveTemp(HitFlashInfo));
@@ -108,7 +111,7 @@ void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const
 	if (Damage > 0.f)
 	{
 		HPComponent->Injure(Damage);
-		FlashComponent->PlayFromStart(HitFlashName);
+		FlashComponent->PlayFlashFromStart(HitFlashName);
 		OnInvinciblized();
 	}
 }

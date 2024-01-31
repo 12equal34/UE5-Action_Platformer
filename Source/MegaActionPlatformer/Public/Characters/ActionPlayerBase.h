@@ -14,6 +14,7 @@ struct FInputActionValue;
 struct FInputActionInstance;
 
 class AActionEnemyBase;
+class APlayerProjectileBase;
 
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionPlayerBase : public AActionCharBase
@@ -35,8 +36,12 @@ protected:
 	virtual void BeginPlay() override;
 	//~ End AActor Interface.
 
-	void Shoot();
+	void Shoot(const TSubclassOf<APlayerProjectileBase>& InProjectileClass);
 	void EndShoot();
+	void ChargeShotEnergy();
+	void StartChargeShotEnergy();
+	void EndChargeShotEnergy();
+	bool bCharging;
 
 	void RestoreShotEnergy();
 
@@ -60,8 +65,7 @@ private:
 private:
 	void OnIA_Move(const FInputActionValue& Value);
 	void OnIA_Jump(const FInputActionInstance& Instance);
-	void OnIA_Shoot(const FInputActionValue& Value);
-	void OnIA_ChargeShoot(const FInputActionInstance& Instance);
+	void OnIA_Shoot(const FInputActionInstance& Instance);
 
 	void AddDefaultInputMappingContext();
 
@@ -78,7 +82,13 @@ private:
 	TObjectPtr<UInputAction> IA_Shoot;
 
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	TSubclassOf<class APlayerProjectileBase> PlayerProjectileClass;
+	TSubclassOf<APlayerProjectileBase> NormalProjectileClass;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	TSubclassOf<APlayerProjectileBase> FullChargedProjectileClass;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	TSubclassOf<APlayerProjectileBase> HalfChargedProjectileClass;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> Muzzle;
@@ -106,6 +116,7 @@ private:
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	float FullChargeTime = 2.f;
 
+	/** ChargeFlash begins since this time. */
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	float HalfChargeTime = 1.f;
 };
