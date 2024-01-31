@@ -28,12 +28,27 @@ DEFINE_LOG_CATEGORY(LogPlayerInput);
 
 AActionPlayerBase::AActionPlayerBase()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+
+	JumpMaxHoldTime = 0.4f;
+
+	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+	MovementComp->AirControl = 1.f;
+	MovementComp->FallingLateralFriction = 50.f;
+
 	UPaperFlipbookComponent* MySprite = GetSprite();
 	MySprite->SetRelativeLocation(FVector(-5.f, 0.f, 13.9f));
 
 	UActionFactionComponent* FactionComp = GetFactionComponent();
 	FactionComp->SetFaction(EActionFaction::EAF_Player);
 
+	UHPComponent* HPComp = GetHPComponent();
+	HPComp->SetMaximumHP(100.f);
+
+	/**
+	* Create Default Subobjects.
+	*/
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	check(SpringArmComponent);
 	SpringArmComponent->SetupAttachment(GetRootComponent());
@@ -46,48 +61,39 @@ AActionPlayerBase::AActionPlayerBase()
 	check(CameraComponent);
 	CameraComponent->SetupAttachment(SpringArmComponent);
 
-	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultIMC_Ref(TEXT("/Game/MegaActionPlatformer/Input/IMC_Action.IMC_Action"));
-	check(DefaultIMC_Ref.Succeeded());
-	DefaultIMC = DefaultIMC_Ref.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Move_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Move.IA_Move"));
-	check(IA_Move_Ref.Succeeded());
-	IA_Move = IA_Move_Ref.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Jump_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Jump.IA_Jump"));
-	check(IA_Jump_Ref.Succeeded());
-	IA_Jump = IA_Jump_Ref.Object;
-
-	JumpMaxHoldTime = 0.4f;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Shoot_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Shoot.IA_Shoot"));
-	check(IA_Shoot_Ref.Succeeded());
-	IA_Shoot = IA_Shoot_Ref.Object;
-
 	Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
 	check(Muzzle);
 	Muzzle->SetupAttachment(GetRootComponent());
 	Muzzle->SetRelativeLocation(FVector(53.f, 0.f, 8.f));
 
-	UCharacterMovementComponent* CharMovement = GetCharacterMovement();
-	CharMovement->AirControl = 1.f;
-	CharMovement->FallingLateralFriction = 50.f;
+	/**
+	* Prepare default Input Assets.
+	*/
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultIMC_Ref(TEXT("/Game/MegaActionPlatformer/Input/IMC_Action.IMC_Action"));
+	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Move_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Move.IA_Move"));
+	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Jump_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Jump.IA_Jump"));
+	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Shoot_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Shoot.IA_Shoot"));
+	check(DefaultIMC_Ref.Succeeded());
+	check(IA_Move_Ref.Succeeded());
+	check(IA_Jump_Ref.Succeeded());
+	check(IA_Shoot_Ref.Succeeded());
 
-	UHPComponent* HPComp = GetHPComponent();
-	HPComp->SetMaximumHP(100.f);
+	/** Set default input assets. */
+	DefaultIMC = DefaultIMC_Ref.Object;
+	IA_Move    = IA_Move_Ref.Object;
+	IA_Jump    = IA_Jump_Ref.Object;
+	IA_Shoot   = IA_Shoot_Ref.Object;
 
 	/** 
 	* Prepare curves for Flash VFXs. 
 	*/ 
 	static ConstructorHelpers::FObjectFinder<UCurveLinearColor> ChargeFlashColorCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_ChargeFlash_Color.C_ChargeFlash_Color"));
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>       ChargeFlashPowerFloatCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_ChargeFlash_Float.C_ChargeFlash_Float"));
 	check(ChargeFlashColorCurveRef.Succeeded());
-
-	static ConstructorHelpers::FObjectFinder<UCurveFloat> ChargeFlashPowerFloatCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_ChargeFlash_Float.C_ChargeFlash_Float"));
 	check(ChargeFlashPowerFloatCurveRef.Succeeded());
 
+	/** Add a ChargeFlash Info. */
 	UFlashComponent* FlashComp = GetFlashComponent();
-
-	// Add a ChargeFlash Info.
 	FFlashInfo ChargeFlashInfo;
 	ChargeFlashInfo.PlayPurpose = EFlashInfoPlayPurpose::EFIPP_WantsFixPlayTime;
 	ChargeFlashInfo.bLooping = true;
@@ -113,16 +119,18 @@ void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		checkf(IA_Jump, TEXT("%s is NOT set."), *IA_Jump.GetName());
 		checkf(IA_Shoot,TEXT("%s is NOT set."), *IA_Shoot.GetName());
 
+		EnhancedInput->BindAction(IA_Move, ETriggerEvent::None,      this, &AActionPlayerBase::OnIA_Move);
 		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Move);
+
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Jump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Jump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Jump);
 
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Started, this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Ongoing, this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Started,   this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Ongoing,   this, &AActionPlayerBase::OnIA_Shoot);
 		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Shoot);
 		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Canceled, this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Shoot);
 	}
 }
 
@@ -130,6 +138,51 @@ bool AActionPlayerBase::IsShooting() const
 {
 	return bShooting;
 }
+
+void AActionPlayerBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction)
+{
+	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
+
+	TryWallSliding();
+}
+
+void AActionPlayerBase::TryWallSliding()
+{
+	// Always try sliding when player is falling.
+	const float FallingVelocity = GetVelocity().Z;
+	if (FallingVelocity > -WallSlidingMinVelocity)
+	{
+		return;
+	}
+
+	// And needs to input keeping.
+	const bool bWallAndInputValueAreSameDirection = 0.f < MoveInputValue * GetActorForwardVector().X;
+	if (!bWallAndInputValueAreSameDirection) 
+	{
+		return;
+	}
+
+	UWorld* const World = GetWorld();
+	check(World);
+
+	// Is there a wall?
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECollisionChannel::ECC_WorldStatic); // We assumes any ECC_WorldStatic is Wall Type.
+	FVector Start = GetActorLocation();
+	FVector End   = Start + GetActorForwardVector() * WallTraceLength;
+	FHitResult HitResult;
+	const bool bThereIsWall = World->LineTraceSingleByObjectType(HitResult,Start,End,ObjectQueryParams);
+	if (!bThereIsWall)
+	{
+		return;
+	}
+
+	// Slide the wall.
+	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+	MovementComp->Velocity.Z = FMath::Max(FallingVelocity, -WallSlidingMaxVelocity);
+	MovementComp->UpdateComponentVelocity();
+}
+
 
 void AActionPlayerBase::BeginPlay()
 {
@@ -197,10 +250,6 @@ void AActionPlayerBase::EndShoot()
 	bShooting = false;
 }
 
-void AActionPlayerBase::ChargeShotEnergy()
-{
-}
-
 void AActionPlayerBase::StartChargeShotEnergy()
 {
 	GetFlashComponent()->PlayFlashFromStart(ChargeFlashName);
@@ -241,19 +290,29 @@ void AActionPlayerBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionCha
 	}
 }
 
-void AActionPlayerBase::OnIA_Move(const FInputActionValue& Value)
+void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
 {
+	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
+	if (TriggerEvent == ETriggerEvent::None)
+	{
+		if (MoveInputValue != 0.f)
+		{
+			MoveInputValue = 0.f;
+		}
+		return;
+	}
+
 	if (bStop) return;
 
-	const float InputScale = Value.Get<float>();
-	if (InputScale == 0.f)
+	MoveInputValue = Instance.GetValue().Get<float>();
+	if (MoveInputValue == 0.f)
 	{
 		UE_LOG( LogPlayerInput,Display, TEXT("Move: Zero") );
 		return;
 	}
 
-	const bool bRight = InputScale > 0.f;
-	AddMovementInput(FVector::XAxisVector, InputScale);
+	const bool bRight = MoveInputValue > 0.f;
+	AddMovementInput(FVector::XAxisVector, MoveInputValue);
 	PlayerController->SetControlRotation(FRotator(0.f, (bRight ? 0.f : 180.f), 0.f));
 
 	UE_LOG( LogPlayerInput,Display, TEXT("Move: %s"), (bRight?TEXT("Right"):TEXT("Left")) );
@@ -347,3 +406,4 @@ void AActionPlayerBase::AddDefaultInputMappingContext()
 	checkf(DefaultIMC, TEXT("%s does NOT setup a property of AActionPlayerBase: " UE_CONVERT_TO_TEXT(DefaultIMC)), *GetName());
 	Subsystem->AddMappingContext(DefaultIMC, 0);
 }
+

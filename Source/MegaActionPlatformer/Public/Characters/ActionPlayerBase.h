@@ -30,15 +30,15 @@ public:
 	UFUNCTION(BlueprintPure, Category=Animation)
 	bool IsShooting() const;
 
+	//~ Begin AActor Interface.
+	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction);
 
 protected:
-	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
 	//~ End AActor Interface.
 
 	void Shoot(const TSubclassOf<APlayerProjectileBase>& InProjectileClass);
 	void EndShoot();
-	void ChargeShotEnergy();
 	void StartChargeShotEnergy();
 	void EndChargeShotEnergy();
 	bool bCharging;
@@ -63,11 +63,13 @@ private:
 	FName ChargeFlashName;
 
 private:
-	void OnIA_Move(const FInputActionValue& Value);
+	void OnIA_Move(const FInputActionInstance& Instance);
 	void OnIA_Jump(const FInputActionInstance& Instance);
 	void OnIA_Shoot(const FInputActionInstance& Instance);
 
 	void AddDefaultInputMappingContext();
+
+	void TryWallSliding();
 
 	UPROPERTY(Category=Input,EditDefaultsOnly)
 	TObjectPtr<UInputMappingContext> DefaultIMC;
@@ -119,4 +121,15 @@ private:
 	/** ChargeFlash begins since this time. */
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	float HalfChargeTime = 1.f;
+
+	UPROPERTY(Category=Movement,EditDefaultsOnly)
+	float WallTraceLength = 40.f;
+
+	UPROPERTY(Category=Movement,EditDefaultsOnly,meta=(ClampMin="0"))
+	float WallSlidingMaxVelocity = 50.f;
+
+	UPROPERTY(Category=Movement,EditDefaultsOnly,meta=(ClampMin="0"))
+	float WallSlidingMinVelocity = 20.f;
+
+	float MoveInputValue;
 };
