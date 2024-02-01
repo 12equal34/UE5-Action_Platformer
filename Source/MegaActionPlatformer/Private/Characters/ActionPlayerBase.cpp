@@ -38,7 +38,7 @@ AActionPlayerBase::AActionPlayerBase()
 	MovementComp->FallingLateralFriction = 50.f;
 
 	UPaperFlipbookComponent* MySprite = GetSprite();
-	MySprite->SetRelativeLocation(FVector(-5.f, 0.f, 13.9f));
+	MySprite->SetRelativeLocation(FVector(-5.f, -0.1f, 13.9f));
 
 	UActionFactionComponent* FactionComp = GetFactionComponent();
 	FactionComp->SetFaction(EActionFaction::EAF_Player);
@@ -64,7 +64,9 @@ AActionPlayerBase::AActionPlayerBase()
 	Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
 	check(Muzzle);
 	Muzzle->SetupAttachment(GetRootComponent());
-	Muzzle->SetRelativeLocation(FVector(53.f, 0.f, 8.f));
+	MuzzleLocation               = FVector(53.f, 0.f, 8.f);
+	MuzzleLocationForSlidingWall = FVector(-77.f, 0.f, 4.f);
+	Muzzle->SetRelativeLocation(MuzzleLocation);
 
 	/**
 	* Prepare default Input Assets.
@@ -139,6 +141,11 @@ bool AActionPlayerBase::IsShooting() const
 	return bShooting;
 }
 
+bool AActionPlayerBase::IsSlidingWall() const
+{
+	return bSlidingWall;
+}
+
 void AActionPlayerBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
@@ -152,6 +159,7 @@ void AActionPlayerBase::TryWallSliding()
 	const float FallingVelocity = GetVelocity().Z;
 	if (FallingVelocity > -WallSlidingMinVelocity)
 	{
+		TransferNotWallSlidingState();
 		return;
 	}
 
@@ -159,6 +167,7 @@ void AActionPlayerBase::TryWallSliding()
 	const bool bWallAndInputValueAreSameDirection = 0.f < MoveInputValue * GetActorForwardVector().X;
 	if (!bWallAndInputValueAreSameDirection) 
 	{
+		TransferNotWallSlidingState();
 		return;
 	}
 
@@ -174,6 +183,7 @@ void AActionPlayerBase::TryWallSliding()
 	const bool bThereIsWall = World->LineTraceSingleByObjectType(HitResult,Start,End,ObjectQueryParams);
 	if (!bThereIsWall)
 	{
+		TransferNotWallSlidingState();
 		return;
 	}
 
@@ -181,6 +191,29 @@ void AActionPlayerBase::TryWallSliding()
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	MovementComp->Velocity.Z = FMath::Max(FallingVelocity, -WallSlidingMaxVelocity);
 	MovementComp->UpdateComponentVelocity();
+	TransferWallSlidingState();
+}
+
+void AActionPlayerBase::TransferWallSlidingState()
+{
+	if (!bSlidingWall)
+	{
+		bSlidingWall = true;
+		Muzzle->SetRelativeLocation(MuzzleLocationForSlidingWall);
+		Muzzle->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
+		GetSprite()->SetRelativeLocation(FVector(6.5f, -0.1f, 13.9f));
+	}
+}
+
+void AActionPlayerBase::TransferNotWallSlidingState()
+{
+	if (bSlidingWall)
+	{
+		bSlidingWall = false;
+		Muzzle->SetRelativeLocation(MuzzleLocation);
+		Muzzle->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
+		GetSprite()->SetRelativeLocation(FVector(-5.f, -0.1f, 13.9f));
+	}
 }
 
 
@@ -239,10 +272,6 @@ void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjec
 	UE_LOG(LogPlayer,Display, TEXT("Shot energy : %d"), ShotEnergy);
 	RestoreShotEnergyIndex = Timers.GetNextIndex(RestoreShotEnergyIndex);
 	TM.SetTimer(Timers[RestoreShotEnergyIndex],this,&AActionPlayerBase::RestoreShotEnergy,ShotEnergyRestoreTime,false);
-
-	// for character shooting animations.
-	//bShooting = true;
-	//TM.SetTimer(ShootingTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
 }
 
 void AActionPlayerBase::EndShoot()
@@ -392,6 +421,8 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 	else if (TriggerEvent == ETriggerEvent::Started)
 	{
 		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Started"));
+
+		// Start player character shooting animations.
 		bShooting = true;
 		GetWorldTimerManager().ClearTimer(ShootingTimer);
 	}

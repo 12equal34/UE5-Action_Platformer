@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintPure, Category=Animation)
 	bool IsShooting() const;
 
+	UFUNCTION(BlueprintPure, Category=Animation)
+	bool IsSlidingWall() const;
+
 	//~ Begin AActor Interface.
 	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction);
 
@@ -70,6 +73,8 @@ private:
 	void AddDefaultInputMappingContext();
 
 	void TryWallSliding();
+	void TransferWallSlidingState();
+	void TransferNotWallSlidingState();
 
 	UPROPERTY(Category=Input,EditDefaultsOnly)
 	TObjectPtr<UInputMappingContext> DefaultIMC;
@@ -95,6 +100,12 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> Muzzle;
 
+	UPROPERTY(Category="Combat|Muzzle",EditDefaultsOnly)
+	FVector MuzzleLocation;
+
+	UPROPERTY(Category="Combat|Muzzle",EditDefaultsOnly)
+	FVector MuzzleLocationForSlidingWall;
+
 	FTimerHandle ShootingTimer;
 
 	TUniquePtr<TCircularBuffer<FTimerHandle>> RestoringShotEnergyTimers;
@@ -107,7 +118,11 @@ private:
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	float ShotEnergyRestoreTime = 0.5f;
 
+	UPROPERTY(Category=Animation,VisibleInstanceOnly)
 	bool bShooting;
+
+	UPROPERTY(Category=Animation,VisibleInstanceOnly)
+	bool bSlidingWall;
 
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	int32 MaxShotEnergy = 3;
