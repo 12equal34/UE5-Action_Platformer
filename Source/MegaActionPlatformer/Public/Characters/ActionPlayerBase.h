@@ -146,5 +146,17 @@ private:
 	UPROPERTY(Category=Movement,EditDefaultsOnly,meta=(ClampMin="0"))
 	float WallSlidingMinVelocity = 20.f;
 
+	/** Player's move input: Left is -1.0, right is 1.0, and No input is 0. */
 	float MoveInputValue;
+
+	UPROPERTY(Category=Movement,EditDefaultsOnly)
+	float WallJumpRestoreFallingLateralFrictionTime = 0.1f;
+
+	UPROPERTY(Category=Movement,EditDefaultsOnly)
+	float WallJumpVerticalLaunch = 1500.f;
+
+	UPROPERTY(Category=Movement,EditDefaultsOnly)
+	float WallJumpHorizontalLaunch = 800.f;
+
+	FTimerHandle WallJumpRestoreFallingLateralFrictionTimer;
 };

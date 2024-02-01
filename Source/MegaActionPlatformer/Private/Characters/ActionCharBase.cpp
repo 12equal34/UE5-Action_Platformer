@@ -129,7 +129,7 @@ void AActionCharBase::OnFinishedDying()
 
 void AActionCharBase::FinishStop()
 {
-	GetCharacterMovement()->FallingLateralFriction = InitialFallingLateralFriction;
+	RestoreFallingLateralFriction();
 	bStop = false;
 	bHurt = false;
 }
@@ -170,6 +170,11 @@ void AActionCharBase::OnInvinciblized()
 
 void AActionCharBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)
 {
+}
+
+void AActionCharBase::RestoreFallingLateralFriction()
+{
+	GetCharacterMovement()->FallingLateralFriction = InitialFallingLateralFriction;
 }
 
 void AActionCharBase::PlayDestructionVFX()

@@ -216,7 +216,6 @@ void AActionPlayerBase::TransferNotWallSlidingState()
 	}
 }
 
-
 void AActionPlayerBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -366,7 +365,18 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 	{
 		UE_LOG(LogPlayerInput, Display, TEXT("Jump: Triggered"));
 
-		Jump();
+		if (bSlidingWall)
+		{
+			FVector LaunchVelocity = FVector(-WallJumpHorizontalLaunch * MoveInputValue, 0.f, WallJumpVerticalLaunch);
+			GetCharacterMovement()->FallingLateralFriction = 0.f;
+			GetWorldTimerManager().SetTimer(WallJumpRestoreFallingLateralFrictionTimer, this, &AActionPlayerBase::RestoreFallingLateralFriction, 
+											WallJumpRestoreFallingLateralFrictionTime, false);
+			LaunchCharacter(LaunchVelocity, true, true);
+		}
+		else
+		{
+			Jump();
+		}
 	}
 }
 
