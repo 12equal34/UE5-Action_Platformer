@@ -30,7 +30,7 @@ public:
 	FORCEINLINE UFlashComponent* GetFlashComponent() const { return FlashComponent; }
 
 	void OnKnockbacked(float KnockbackTime);
-	void OnInvinciblized();
+	void OnInvinciblized(float InInvisibleTime);
 
 	FORCEINLINE bool IsInvincible() const { return bInvincible; }
 

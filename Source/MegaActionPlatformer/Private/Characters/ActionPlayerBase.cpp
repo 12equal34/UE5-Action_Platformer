@@ -5,18 +5,23 @@
 #include "Characters/LogPlayer.h"
 #include "Characters/ActionEnemyBase.h"
 #include "Camera/CameraComponent.h"
+#include "PaperFlipbookComponent.h"
+#include "Components/SceneComponent.h"
+
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/RootMotionSource.h"
+
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
+
 #include "Projectiles/PlayerProjectileBase.h"
-#include "Components/SceneComponent.h"
-#include "PaperFlipbookComponent.h"
 #include "Factions/ActionFactionComponent.h"
 #include "Combat/HPComponent.h"
 #include "VFX/FlashComponent.h"
+
 #include "Curves/CurveLinearColor.h"
 #include "Curves/CurveFloat.h"
 
@@ -75,24 +80,31 @@ AActionPlayerBase::AActionPlayerBase()
 	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Move_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Move.IA_Move"));
 	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Jump_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Jump.IA_Jump"));
 	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Shoot_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Shoot.IA_Shoot"));
+	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Slide_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Slide.IA_Slide"));
 	check(DefaultIMC_Ref.Succeeded());
 	check(IA_Move_Ref.Succeeded());
 	check(IA_Jump_Ref.Succeeded());
 	check(IA_Shoot_Ref.Succeeded());
+	check(IA_Slide_Ref.Succeeded());
 
 	/** Set default input assets. */
 	DefaultIMC = DefaultIMC_Ref.Object;
 	IA_Move    = IA_Move_Ref.Object;
 	IA_Jump    = IA_Jump_Ref.Object;
 	IA_Shoot   = IA_Shoot_Ref.Object;
+	IA_Slide   = IA_Slide_Ref.Object;
 
 	/** 
 	* Prepare curves for Flash VFXs. 
 	*/ 
 	static ConstructorHelpers::FObjectFinder<UCurveLinearColor> ChargeFlashColorCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_ChargeFlash_Color.C_ChargeFlash_Color"));
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>       ChargeFlashPowerFloatCurveRef(TEXT("/Game/MegaActionPlatformer/Curves/C_ChargeFlash_Float.C_ChargeFlash_Float"));
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>       SlidingStrengthOverTimeRef(TEXT("/Game/MegaActionPlatformer/Curves/C_PlayerSlide_Float.C_PlayerSlide_Float"));
 	check(ChargeFlashColorCurveRef.Succeeded());
 	check(ChargeFlashPowerFloatCurveRef.Succeeded());
+	check(SlidingStrengthOverTimeRef.Succeeded());
+
+	SlidingStrengthOverTime = SlidingStrengthOverTimeRef.Object;
 
 	/** Add a ChargeFlash Info. */
 	UFlashComponent* FlashComp = GetFlashComponent();
@@ -133,6 +145,8 @@ void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Shoot);
 		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Shoot);
 		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Shoot);
+
+		EnhancedInput->BindAction(IA_Slide,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Slide);
 	}
 }
 
@@ -144,6 +158,11 @@ bool AActionPlayerBase::IsShooting() const
 bool AActionPlayerBase::IsSlidingWall() const
 {
 	return bSlidingWall;
+}
+
+bool AActionPlayerBase::IsSliding() const
+{
+	return bSliding;
 }
 
 void AActionPlayerBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction)
@@ -233,9 +252,21 @@ void AActionPlayerBase::TransferNotWallSlidingState()
 	}
 }
 
+void AActionPlayerBase::EndSlide()
+{
+	bSliding = false;
+}
+
+void AActionPlayerBase::EnableSlide()
+{
+	bCanSliding = true;
+}
+
 void AActionPlayerBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	check(GetCharacterMovement());
 
 	PlayerController = CastChecked<APlayerController>(GetController());
 
@@ -288,6 +319,9 @@ void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjec
 	UE_LOG(LogPlayer,Display, TEXT("Shot energy : %d"), ShotEnergy);
 	RestoreShotEnergyIndex = Timers.GetNextIndex(RestoreShotEnergyIndex);
 	TM.SetTimer(Timers[RestoreShotEnergyIndex],this,&AActionPlayerBase::RestoreShotEnergy,ShotEnergyRestoreTime,false);
+
+	// sets bShooting to false after ShootingTime.
+	TM.SetTimer(EndShootTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
 }
 
 void AActionPlayerBase::EndShoot()
@@ -352,7 +386,7 @@ void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
 		return;
 	}
 
-	if (bStop) return;
+	if (bStop || bSliding) return;
 
 	MoveInputValue = Instance.GetValue().Get<float>();
 	if (MoveInputValue == 0.f)
@@ -370,7 +404,7 @@ void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
 
 void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 {
-	if (bStop) return;
+	if (bStop || bSliding) return;
 
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
 	if (TriggerEvent == ETriggerEvent::Completed)
@@ -420,6 +454,17 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 			return;
 		}
 
+		if (bSliding)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed, The player can't shoot for sliding, so shooting is failed."));
+			if (bCharging)
+			{
+				EndChargeShotEnergy();
+			}
+			EndShoot();
+			return;
+		}
+
 		if (bCharging)
 		{
 			EndChargeShotEnergy();
@@ -441,8 +486,6 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Normal shot)"));
 			Shoot(NormalProjectileClass);
 		}
-
-		GetWorldTimerManager().SetTimer(EndShootTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
 	}
 	else if (TriggerEvent == ETriggerEvent::Canceled)
 	{
@@ -493,6 +536,43 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 		bShooting = true;
 		GetWorldTimerManager().ClearTimer(EndShootTimer);
 	}
+}
+
+void AActionPlayerBase::OnIA_Slide()
+{
+	if (!bCanSliding || GetCharacterMovement()->IsFalling()) return;
+	bCanSliding = false;
+	bSliding = true;
+	
+	const float SlideDelay = SlideDuration + DelayAfterSliding;
+	check(SlideDelay >= SlideDuration);
+	GetWorldTimerManager().SetTimer(EnableSlideTimer, this, &AActionPlayerBase::EnableSlide, SlideDelay, false);
+	GetWorldTimerManager().SetTimer(EndSlideTimer,    this, &AActionPlayerBase::EndSlide, SlideDuration, false);
+
+	OnInvinciblized(SlideDuration);
+
+	SlideFloor();
+}
+
+void AActionPlayerBase::SlideFloor()
+{
+	// Create a root motion source
+	TSharedPtr<FRootMotionSource_ConstantForce> SlidingRootMotionSource = MakeShared<FRootMotionSource_ConstantForce>();
+	SlidingRootMotionSource->InstanceName = FName("SlidingConstantForce");
+	SlidingRootMotionSource->AccumulateMode = ERootMotionAccumulateMode::Override;
+	SlidingRootMotionSource->Priority = 5;
+	SlidingRootMotionSource->Force = GetActorForwardVector() * SlidingForce;
+	SlidingRootMotionSource->Duration = SlideDuration;
+	SlidingRootMotionSource->StrengthOverTime = SlidingStrengthOverTime;
+	SlidingRootMotionSource->FinishVelocityParams.Mode = ERootMotionFinishVelocityMode::SetVelocity;
+	SlidingRootMotionSource->FinishVelocityParams.SetVelocity = FVector::Zero();
+
+	if (bEnableGravityForSliding)
+	{
+		SlidingRootMotionSource->Settings.SetFlag(ERootMotionSourceSettingsFlags::IgnoreZAccumulate);
+	}
+
+	GetCharacterMovement()->ApplyRootMotionSource(SlidingRootMotionSource);
 }
 
 void AActionPlayerBase::AddDefaultInputMappingContext()

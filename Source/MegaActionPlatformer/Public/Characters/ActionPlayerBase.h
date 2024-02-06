@@ -33,6 +33,9 @@ public:
 	UFUNCTION(BlueprintPure, Category=Animation)
 	bool IsSlidingWall() const;
 
+	UFUNCTION(BlueprintPure, Category=Animation)
+	bool IsSliding() const;
+
 	//~ Begin AActor Interface.
 	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction);
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
@@ -53,6 +56,7 @@ protected:
 	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar) override;
 	virtual void OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser) override;
 	//~ End AActionCharBase Interface.
+
 private:
 	/** a cached pointer to a player controller */
 	UPROPERTY(Transient)
@@ -70,13 +74,9 @@ private:
 	void OnIA_Move(const FInputActionInstance& Instance);
 	void OnIA_Jump(const FInputActionInstance& Instance);
 	void OnIA_Shoot(const FInputActionInstance& Instance);
+	void OnIA_Slide();
 
 	void AddDefaultInputMappingContext();
-
-	void TryWallSliding();
-	void JumpFromWall();
-	void TransferWallSlidingState();
-	void TransferNotWallSlidingState();
 
 	UPROPERTY(Category=Input,EditDefaultsOnly)
 	TObjectPtr<UInputMappingContext> DefaultIMC;
@@ -90,16 +90,72 @@ private:
 	UPROPERTY(Category=Input,EditDefaultsOnly)
 	TObjectPtr<UInputAction> IA_Shoot;
 
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	TSubclassOf<APlayerProjectileBase> NormalProjectileClass;
+	UPROPERTY(Category=Input,EditDefaultsOnly)
+	TObjectPtr<UInputAction> IA_Slide;
 
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	TSubclassOf<APlayerProjectileBase> FullChargedProjectileClass;
+	/** Player's move input: Left is -1.0, right is 1.0, and No input is 0. */
+	UPROPERTY(Category=Input,VisibleInstanceOnly)
+	float MoveInputValue;
 
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	TSubclassOf<APlayerProjectileBase> HalfChargedProjectileClass;
+private:
+	void TryWallSliding();
+	void JumpFromWall();
+	void TransferWallSlidingState();
+	void TransferNotWallSlidingState();
 
-	UPROPERTY(VisibleAnywhere)
+	void SlideFloor();
+	void EndSlide();
+	void EnableSlide();
+
+	UPROPERTY(Category="Animation|Sliding",VisibleInstanceOnly)
+	bool bSlidingWall;
+
+	UPROPERTY(Category="Animation|Sliding",VisibleInstanceOnly)
+	bool bSliding;
+
+	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly,meta=(ClampMin="0"))
+	float WallTraceLength = 40.f;
+
+	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly,meta=(ClampMin="0"))
+	float WallSlidingMaxVelocity = 50.f;
+
+	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly,meta=(ClampMin="0"))
+	float WallSlidingMinVelocity = 20.f;
+
+	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly,meta=(ClampMin="0"))
+	float WallJumpRestoreFallingLateralFrictionTime = 0.25f;
+
+	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly)
+	float WallJumpVerticalLaunch = 1500.f;
+
+	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly)
+	float WallJumpHorizontalLaunch = 800.f;
+
+	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly,meta=(ClampMin="0"))
+	float SlidingForce = 2000.f;
+
+	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly,meta=(ClampMin="0"))
+	float SlideDuration = 0.3f;
+
+	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly,meta=(ClampMin="0"))
+	float DelayAfterSliding = 0.3f;
+
+	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly)
+	TObjectPtr<UCurveFloat> SlidingStrengthOverTime;
+
+	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly)
+	bool bEnableGravityForSliding;
+
+	FTimerHandle WallJumpRestoreFallingLateralFrictionTimer;
+
+	FTimerHandle EndSlideTimer;
+
+	FTimerHandle EnableSlideTimer;
+
+	bool bCanSliding = true;
+
+private:
+	UPROPERTY(Category="Combat|Muzzle",VisibleAnywhere)
 	TObjectPtr<USceneComponent> Muzzle;
 
 	UPROPERTY(Category="Combat|Muzzle",EditDefaultsOnly)
@@ -108,64 +164,46 @@ private:
 	UPROPERTY(Category="Combat|Muzzle",EditDefaultsOnly)
 	FVector MuzzleLocationForSlidingWall;
 
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
+	TSubclassOf<APlayerProjectileBase> NormalProjectileClass;
+
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
+	TSubclassOf<APlayerProjectileBase> FullChargedProjectileClass;
+
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
+	TSubclassOf<APlayerProjectileBase> HalfChargedProjectileClass;
+
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
+	float ShootingTime = 0.5f;
+	
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
+	float ShotEnergyRestoreTime = 1.f;
+
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
+	bool bIsHurtForShooting;
+
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly,meta=(ClampMin="0"))
+	int32 MaxShotEnergy = 3;
+
+	UPROPERTY(Category="Combat|Shot",VisibleInstanceOnly,Transient)
+	int32 ShotEnergy;
+
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly,meta=(ClampMin="0"))
+	float FullChargeTime = 2.f;
+
+	/** ChargeFlash begins since this time. */
+	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly,meta=(ClampMin="0"))
+	float HalfChargeTime = 1.f;
+
+	UPROPERTY(Category="Animation|Shooting",VisibleInstanceOnly)
+	bool bShooting;
+
+	UPROPERTY(Category="Animation|Shooting",VisibleInstanceOnly)
+	bool bCharging;
+
 	FTimerHandle EndShootTimer;
 
 	TUniquePtr<TCircularBuffer<FTimerHandle>> RestoringShotEnergyTimers;
 
 	uint32 RestoreShotEnergyIndex;
-
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float ShootingTime = 0.5f;
-	
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float ShotEnergyRestoreTime = 0.5f;
-
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	bool bIsHurtForShooting;
-
-	/** Player's move input: Left is -1.0, right is 1.0, and No input is 0. */
-	UPROPERTY(Category=Animation,VisibleInstanceOnly)
-	float MoveInputValue;
-
-	UPROPERTY(Category=Animation,VisibleInstanceOnly)
-	bool bShooting;
-
-	UPROPERTY(Category=Animation,VisibleInstanceOnly)
-	bool bSlidingWall;
-
-	UPROPERTY(Category=Animation,VisibleInstanceOnly)
-	bool bCharging;
-
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	int32 MaxShotEnergy = 3;
-
-	UPROPERTY(Category=Combat,VisibleInstanceOnly,Transient)
-	int32 ShotEnergy;
-
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float FullChargeTime = 2.f;
-
-	/** ChargeFlash begins since this time. */
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float HalfChargeTime = 1.f;
-
-	UPROPERTY(Category=Movement,EditDefaultsOnly)
-	float WallTraceLength = 40.f;
-
-	UPROPERTY(Category=Movement,EditDefaultsOnly,meta=(ClampMin="0"))
-	float WallSlidingMaxVelocity = 50.f;
-
-	UPROPERTY(Category=Movement,EditDefaultsOnly,meta=(ClampMin="0"))
-	float WallSlidingMinVelocity = 20.f;
-
-	UPROPERTY(Category=Movement,EditDefaultsOnly)
-	float WallJumpRestoreFallingLateralFrictionTime = 0.1f;
-
-	UPROPERTY(Category=Movement,EditDefaultsOnly)
-	float WallJumpVerticalLaunch = 1500.f;
-
-	UPROPERTY(Category=Movement,EditDefaultsOnly)
-	float WallJumpHorizontalLaunch = 800.f;
-
-	FTimerHandle WallJumpRestoreFallingLateralFrictionTimer;
 };

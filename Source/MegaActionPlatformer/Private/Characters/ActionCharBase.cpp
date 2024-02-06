@@ -112,7 +112,7 @@ void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const
 	{
 		HPComponent->Injure(Damage);
 		FlashComponent->PlayFlashFromStart(HitFlashName);
-		OnInvinciblized();
+		OnInvinciblized(DamagedInvisibleTime);
 	}
 }
 
@@ -160,12 +160,12 @@ void AActionCharBase::OnKnockbacked(float KnockbackTime)
 	GetWorldTimerManager().SetTimer(FinishStopTimer, this, &AActionCharBase::FinishStop, KnockbackTime, false);
 }
 
-void AActionCharBase::OnInvinciblized()
+void AActionCharBase::OnInvinciblized(float InInvisibleTime)
 {
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 	bInvincible = true;
-	check(DamagedInvisibleTime > 0.f);
-	GetWorldTimerManager().SetTimer(FinishInvincibleTimer, this, &AActionCharBase::FinishInvincible, DamagedInvisibleTime, false);
+	check(InInvisibleTime > 0.f);
+	GetWorldTimerManager().SetTimer(FinishInvincibleTimer, this, &AActionCharBase::FinishInvincible, InInvisibleTime, false);
 }
 
 void AActionCharBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)
