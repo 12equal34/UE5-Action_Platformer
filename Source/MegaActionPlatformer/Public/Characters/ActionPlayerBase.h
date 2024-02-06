@@ -35,6 +35,7 @@ public:
 
 	//~ Begin AActor Interface.
 	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction);
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -44,14 +45,14 @@ protected:
 	void EndShoot();
 	void StartChargeShotEnergy();
 	void EndChargeShotEnergy();
-	bool bCharging;
-
 	void RestoreShotEnergy();
 
 	void OnPlayerBeginOverlapEnemy(AActionEnemyBase& EnemyActionChar);
 
+	//~ Begin AActionCharBase Interface.
 	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar) override;
-
+	virtual void OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser) override;
+	//~ End AActionCharBase Interface.
 private:
 	/** a cached pointer to a player controller */
 	UPROPERTY(Transient)
@@ -73,6 +74,7 @@ private:
 	void AddDefaultInputMappingContext();
 
 	void TryWallSliding();
+	void JumpFromWall();
 	void TransferWallSlidingState();
 	void TransferNotWallSlidingState();
 
@@ -106,7 +108,7 @@ private:
 	UPROPERTY(Category="Combat|Muzzle",EditDefaultsOnly)
 	FVector MuzzleLocationForSlidingWall;
 
-	FTimerHandle ShootingTimer;
+	FTimerHandle EndShootTimer;
 
 	TUniquePtr<TCircularBuffer<FTimerHandle>> RestoringShotEnergyTimers;
 
@@ -118,11 +120,21 @@ private:
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	float ShotEnergyRestoreTime = 0.5f;
 
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	bool bIsHurtForShooting;
+
+	/** Player's move input: Left is -1.0, right is 1.0, and No input is 0. */
+	UPROPERTY(Category=Animation,VisibleInstanceOnly)
+	float MoveInputValue;
+
 	UPROPERTY(Category=Animation,VisibleInstanceOnly)
 	bool bShooting;
 
 	UPROPERTY(Category=Animation,VisibleInstanceOnly)
 	bool bSlidingWall;
+
+	UPROPERTY(Category=Animation,VisibleInstanceOnly)
+	bool bCharging;
 
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
 	int32 MaxShotEnergy = 3;
@@ -145,9 +157,6 @@ private:
 
 	UPROPERTY(Category=Movement,EditDefaultsOnly,meta=(ClampMin="0"))
 	float WallSlidingMinVelocity = 20.f;
-
-	/** Player's move input: Left is -1.0, right is 1.0, and No input is 0. */
-	float MoveInputValue;
 
 	UPROPERTY(Category=Movement,EditDefaultsOnly)
 	float WallJumpRestoreFallingLateralFrictionTime = 0.1f;

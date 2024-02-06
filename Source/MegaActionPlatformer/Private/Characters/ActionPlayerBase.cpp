@@ -153,6 +153,23 @@ void AActionPlayerBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTi
 	TryWallSliding();
 }
 
+float AActionPlayerBase::TakeDamage(float Damage,FDamageEvent const& DamageEvent,AController* EventInstigator,AActor* DamageCauser)
+{
+	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	if (ActualDamage != 0.f)
+	{
+		EndShoot();
+		bIsHurtForShooting = true;
+		if (bCharging)
+		{
+			EndChargeShotEnergy();
+		}
+	}
+
+	return ActualDamage;
+}
+
 void AActionPlayerBase::TryWallSliding()
 {
 	// Always try sliding when player is falling.
@@ -318,6 +335,11 @@ void AActionPlayerBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionCha
 	}
 }
 
+void AActionPlayerBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser)
+{
+	Super::OnAppliedAnyDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
+}
+
 void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
 {
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
@@ -367,17 +389,22 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 
 		if (bSlidingWall)
 		{
-			FVector LaunchVelocity = FVector(-WallJumpHorizontalLaunch * MoveInputValue, 0.f, WallJumpVerticalLaunch);
-			GetCharacterMovement()->FallingLateralFriction = 0.f;
-			GetWorldTimerManager().SetTimer(WallJumpRestoreFallingLateralFrictionTimer, this, &AActionPlayerBase::RestoreFallingLateralFriction, 
-											WallJumpRestoreFallingLateralFrictionTime, false);
-			LaunchCharacter(LaunchVelocity, true, true);
+			JumpFromWall();
 		}
 		else
 		{
 			Jump();
 		}
 	}
+}
+
+void AActionPlayerBase::JumpFromWall()
+{
+	FVector LaunchVelocity = FVector(-WallJumpHorizontalLaunch * MoveInputValue,0.f,WallJumpVerticalLaunch);
+	GetCharacterMovement()->FallingLateralFriction = 0.f;
+	GetWorldTimerManager().SetTimer(WallJumpRestoreFallingLateralFrictionTimer,this,&AActionPlayerBase::RestoreFallingLateralFriction,
+									WallJumpRestoreFallingLateralFrictionTime,false);
+	LaunchCharacter(LaunchVelocity,true,true);
 }
 
 void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
@@ -387,7 +414,11 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
 	if (TriggerEvent == ETriggerEvent::Completed)
 	{
-		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed"));
+		if (bIsHurtForShooting)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed, The player is hurt for shooting, so shooting is failed."));
+			return;
+		}
 
 		if (bCharging)
 		{
@@ -396,19 +427,22 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 			const float ElapsedTime = Instance.GetElapsedTime();
 			if (ElapsedTime < FullChargeTime)
 			{
+				UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Half shot)"));
 				Shoot(HalfChargedProjectileClass);
 			}
 			else
 			{
+				UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Full shot)"));
 				Shoot(FullChargedProjectileClass);
 			}
 		}
 		else
 		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Normal shot)"));
 			Shoot(NormalProjectileClass);
 		}
 
-		GetWorldTimerManager().SetTimer(ShootingTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
+		GetWorldTimerManager().SetTimer(EndShootTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
 	}
 	else if (TriggerEvent == ETriggerEvent::Canceled)
 	{
@@ -420,10 +454,32 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 	}
 	else if (TriggerEvent == ETriggerEvent::Ongoing)
 	{
-		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing"));
+		if (bIsHurtForShooting)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing (Hurt for shooting)"));
+			return;
+		}
 
 		const float ElapsedTime = Instance.GetElapsedTime();
-		if (ElapsedTime >= HalfChargeTime && !bCharging)
+		if (ElapsedTime < HalfChargeTime)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing (Not charged)"));
+		}
+		else if (ElapsedTime < FullChargeTime)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing (Half charged)"));
+		}
+		else
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing (Full charged)"));
+		}
+		
+		if (bCharging)
+		{
+			return;
+		}
+		
+		if (ElapsedTime >= HalfChargeTime)
 		{
 			StartChargeShotEnergy();
 		}
@@ -433,8 +489,9 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Started"));
 
 		// Start player character shooting animations.
+		bIsHurtForShooting = false;
 		bShooting = true;
-		GetWorldTimerManager().ClearTimer(ShootingTimer);
+		GetWorldTimerManager().ClearTimer(EndShootTimer);
 	}
 }
 

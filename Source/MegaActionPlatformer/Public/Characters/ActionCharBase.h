@@ -37,10 +37,10 @@ public:
 protected:
 	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar);
 
-private:
 	UFUNCTION()
-	void OnAppliedAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+	virtual void OnAppliedAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
+private:
 	void OnStartedDying();
 	void OnFinishedDying();
 	void FinishStop();
