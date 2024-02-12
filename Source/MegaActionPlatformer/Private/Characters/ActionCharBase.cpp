@@ -81,7 +81,7 @@ void AActionCharBase::BeginPlay()
 	OnTakeAnyDamage.AddDynamic(this, &AActionCharBase::OnAppliedAnyDamage);
 
 	HPComponent->OnHPBecameZero.BindUObject(this, &AActionCharBase::OnStartedDying);
-	bDead = HPComponent->IsLeft();
+	bDead = HPComponent->IsZero();
 
 	SpriteMaterialDynamic = GetSprite()->CreateDynamicMaterialInstance(0);
 	check(SpriteMaterialDynamic);
@@ -119,11 +119,14 @@ void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const
 void AActionCharBase::OnStartedDying()
 {
 	bDead = true;
-	OnFinishedDying();
+
+	GetWorldTimerManager().SetTimer(DyingTimer, this, &ThisClass::OnFinishedDying, DyingTime, false);
 }
 
 void AActionCharBase::OnFinishedDying()
 {
+	ActionCharDies.Broadcast(GetController());
+
 	Destroy();
 }
 
@@ -164,8 +167,10 @@ void AActionCharBase::OnInvinciblized(float InInvisibleTime)
 {
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 	bInvincible = true;
-	check(InInvisibleTime > 0.f);
-	GetWorldTimerManager().SetTimer(FinishInvincibleTimer, this, &AActionCharBase::FinishInvincible, InInvisibleTime, false);
+	if (InInvisibleTime > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(FinishInvincibleTimer, this, &AActionCharBase::FinishInvincible, InInvisibleTime, false);
+	}
 }
 
 void AActionCharBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)

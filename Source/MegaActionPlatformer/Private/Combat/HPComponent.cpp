@@ -5,7 +5,17 @@ DEFINE_LOG_CATEGORY_STATIC(LogHP, Display, All);
 
 UHPComponent::UHPComponent()
 {
+	bWantsInitializeComponent = true;
+
 	checkf(MaxHP > 0.f, TEXT("The maximum HP should be always positive."));
+}
+
+void UHPComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+
+	checkf(MaxHP > 0.f, TEXT("Setting: The maximum HP should set a positive number."));
+	HealFully();
 }
 
 void UHPComponent::SetMaximumHP(float InMaxHP)
@@ -103,6 +113,4 @@ void UHPComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	checkf(MaxHP > 0.f, TEXT("Setting: The maximum HP should set a positive number."));
-	HealFully();
 }

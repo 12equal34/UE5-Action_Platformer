@@ -4,18 +4,19 @@
 #include "Characters/ActionPlayerBase.h"
 #include "Characters/LogPlayer.h"
 #include "Characters/ActionEnemyBase.h"
+#include "Controllers/ActionPlayerController.h"
 #include "Camera/CameraComponent.h"
+#include "Camera/CameraActor.h"
 #include "PaperFlipbookComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/CapsuleComponent.h"
 
 #include "GameFramework/SpringArmComponent.h"
-#include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/RootMotionSource.h"
+#include "GameMode/ActionGameModeBase.h"
 
-#include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "InputMappingContext.h"
 
 #include "Projectiles/PlayerProjectileBase.h"
 #include "Factions/ActionFactionComponent.h"
@@ -28,8 +29,6 @@
 DEFINE_LOG_CATEGORY(LogPlayerInput);
 
 #pragma warning(disable: 26813)
-
-#define UE_CONVERT_TO_TEXT(a) #a
 
 AActionPlayerBase::AActionPlayerBase()
 {
@@ -76,19 +75,16 @@ AActionPlayerBase::AActionPlayerBase()
 	/**
 	* Prepare default Input Assets.
 	*/
-	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultIMC_Ref(TEXT("/Game/MegaActionPlatformer/Input/IMC_Action.IMC_Action"));
 	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Move_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Move.IA_Move"));
 	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Jump_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Jump.IA_Jump"));
 	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Shoot_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Shoot.IA_Shoot"));
 	static ConstructorHelpers::FObjectFinder<UInputAction>         IA_Slide_Ref(TEXT("/Game/MegaActionPlatformer/Input/Actions/IA_Slide.IA_Slide"));
-	check(DefaultIMC_Ref.Succeeded());
 	check(IA_Move_Ref.Succeeded());
 	check(IA_Jump_Ref.Succeeded());
 	check(IA_Shoot_Ref.Succeeded());
 	check(IA_Slide_Ref.Succeeded());
 
 	/** Set default input assets. */
-	DefaultIMC = DefaultIMC_Ref.Object;
 	IA_Move    = IA_Move_Ref.Object;
 	IA_Jump    = IA_Jump_Ref.Object;
 	IA_Shoot   = IA_Shoot_Ref.Object;
@@ -148,6 +144,11 @@ void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		EnhancedInput->BindAction(IA_Slide,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Slide);
 	}
+}
+
+void AActionPlayerBase::SetPlayerController(AActionPlayerController& InPlayerController)
+{
+	PlayerController = &InPlayerController;
 }
 
 bool AActionPlayerBase::IsShooting() const
@@ -266,12 +267,6 @@ void AActionPlayerBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	check(GetCharacterMovement());
-
-	PlayerController = CastChecked<APlayerController>(GetController());
-
-	AddDefaultInputMappingContext();
-
 	// makes the restoring shot energy timers buffer.
 	ShotEnergy = MaxShotEnergy;
 	check(MaxShotEnergy > 0);
@@ -279,6 +274,23 @@ void AActionPlayerBase::BeginPlay()
 	RestoringShotEnergyTimers = MakeUnique<TCircularBuffer<FTimerHandle>>(MaxShotEnergy, FTimerHandle{});
 	check(RestoringShotEnergyTimers.IsValid());
 	RestoreShotEnergyIndex = RestoringShotEnergyTimers->Capacity() - 1;
+
+	// adds a delegate on this player character dies.
+	UWorld* World = GetWorld();
+	AActionGameModeBase* GameMode = World->GetAuthGameMode<AActionGameModeBase>();
+	if (GameMode)
+	{
+		OnActionCharDies().AddUObject(GameMode, &AActionGameModeBase::OnPlayerLoses);
+	}
+	else
+	{
+		UE_LOG(LogGameMode,Warning,TEXT("The game mode isn't inherited from AActionGameModeBase."));
+	}
+}
+
+void AActionPlayerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
 }
 
 void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjectileClass)
@@ -374,8 +386,37 @@ void AActionPlayerBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,con
 	Super::OnAppliedAnyDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
 }
 
+void AActionPlayerBase::OnStartedDying()
+{
+	Super::OnStartedDying();
+
+	ACameraActor* Camera = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(),CameraComponent->GetComponentTransform());
+	Camera->GetCameraComponent()->SetAspectRatio(CameraComponent->AspectRatio);
+	Camera->GetCameraComponent()->SetFieldOfView(CameraComponent->FieldOfView);
+	Camera->GetCameraComponent()->bConstrainAspectRatio = false;
+	Camera->SetLifeSpan(DyingTime * 3.f);
+	PlayerController->PlayerCameraManager->SetViewTarget(Camera);
+	PlayerController->PlayerCameraManager->StartCameraFade(0.f, 1.f, DyingTime, FLinearColor::Black);
+	
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AActionPlayerBase::OnFinishedDying()
+{
+	FVector2D FadeAlpha = PlayerController->PlayerCameraManager->FadeAlpha;
+	FLinearColor FadeColor = PlayerController->PlayerCameraManager->FadeColor;
+	PlayerController->PlayerCameraManager->StartCameraFade(FadeAlpha.Y, 0.f, DyingTime, FadeColor);
+
+	Super::OnFinishedDying();
+}
+
 void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
 {
+	if (bDead)
+	{
+		return;
+	}
+
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
 	if (TriggerEvent == ETriggerEvent::None)
 	{
@@ -404,6 +445,10 @@ void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
 
 void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 {
+	if (bDead)
+	{
+		return;
+	}
 	if (bStop || bSliding) return;
 
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
@@ -443,6 +488,10 @@ void AActionPlayerBase::JumpFromWall()
 
 void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 {
+	if (bDead)
+	{
+		return;
+	}
 	if (bStop) return;
 
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
@@ -540,6 +589,10 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 
 void AActionPlayerBase::OnIA_Slide()
 {
+	if (bDead)
+	{
+		return;
+	}
 	if (!bCanSliding || GetCharacterMovement()->IsFalling()) return;
 	bCanSliding = false;
 	bSliding = true;
@@ -574,14 +627,3 @@ void AActionPlayerBase::SlideFloor()
 
 	GetCharacterMovement()->ApplyRootMotionSource(SlidingRootMotionSource);
 }
-
-void AActionPlayerBase::AddDefaultInputMappingContext()
-{
-	check(PlayerController);
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-	check(Subsystem);
-
-	checkf(DefaultIMC, TEXT("%s does NOT setup a property of AActionPlayerBase: " UE_CONVERT_TO_TEXT(DefaultIMC)), *GetName());
-	Subsystem->AddMappingContext(DefaultIMC, 0);
-}
-

@@ -16,6 +16,8 @@ class MEGAACTIONPLATFORMER_API UHPComponent : public UActorComponent
 public:	
 	UHPComponent();
 
+	virtual void InitializeComponent() override;
+
 	void SetMaximumHP(float InMaxHP);
 	void SetCurrentHP(float InHP, bool bCanExcessMax = false);
 

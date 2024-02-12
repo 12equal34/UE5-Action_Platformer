@@ -8,13 +8,13 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPlayerInput, Display, All);
 
-class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 struct FInputActionInstance;
 
 class AActionEnemyBase;
 class APlayerProjectileBase;
+class AActionPlayerController;
 
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionPlayerBase : public AActionCharBase
@@ -26,6 +26,8 @@ public:
 	//~ Begin APawn Interface.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	//~ End APawn Interface.
+
+	void SetPlayerController(AActionPlayerController& InPlayerController);
 
 	UFUNCTION(BlueprintPure, Category=Animation)
 	bool IsShooting() const;
@@ -42,6 +44,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//~ End AActor Interface.
 
 	void Shoot(const TSubclassOf<APlayerProjectileBase>& InProjectileClass);
@@ -55,12 +58,14 @@ protected:
 	//~ Begin AActionCharBase Interface.
 	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar) override;
 	virtual void OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser) override;
+	virtual void OnStartedDying();
+	virtual void OnFinishedDying();
 	//~ End AActionCharBase Interface.
 
 private:
 	/** a cached pointer to a player controller */
 	UPROPERTY(Transient)
-	TObjectPtr<APlayerController> PlayerController;
+	TObjectPtr<AActionPlayerController> PlayerController;
 
 	UPROPERTY(Category=Camera,VisibleAnywhere)
 	TObjectPtr<class USpringArmComponent> SpringArmComponent;
@@ -75,11 +80,6 @@ private:
 	void OnIA_Jump(const FInputActionInstance& Instance);
 	void OnIA_Shoot(const FInputActionInstance& Instance);
 	void OnIA_Slide();
-
-	void AddDefaultInputMappingContext();
-
-	UPROPERTY(Category=Input,EditDefaultsOnly)
-	TObjectPtr<UInputMappingContext> DefaultIMC;
 
 	UPROPERTY(Category=Input,EditDefaultsOnly)
 	TObjectPtr<UInputAction> IA_Move;
