@@ -118,34 +118,6 @@ AActionPlayerBase::AActionPlayerBase()
 	FlashComp->AddFlashInfo(ChargeFlashName, MoveTemp(ChargeFlashInfo));
 }
 
-void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent);
-	if (ensure(EnhancedInput))
-	{
-		checkf(IA_Move, TEXT("%s is NOT set."), *IA_Move.GetName());
-		checkf(IA_Jump, TEXT("%s is NOT set."), *IA_Jump.GetName());
-		checkf(IA_Shoot,TEXT("%s is NOT set."), *IA_Shoot.GetName());
-
-		EnhancedInput->BindAction(IA_Move, ETriggerEvent::None,      this, &AActionPlayerBase::OnIA_Move);
-		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Move);
-
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Jump);
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Jump);
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Jump);
-
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Started,   this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Ongoing,   this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Shoot);
-
-		EnhancedInput->BindAction(IA_Slide,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Slide);
-	}
-}
-
 void AActionPlayerBase::SetPlayerController(AActionPlayerController& InPlayerController)
 {
 	PlayerController = &InPlayerController;
@@ -410,6 +382,40 @@ void AActionPlayerBase::OnFinishedDying()
 	Super::OnFinishedDying();
 }
 
+//-----------------------------------------------------------------------------
+// Inputs
+//-----------------------------------------------------------------------------
+
+void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	if (ensure(EnhancedInput))
+	{
+		checkf(IA_Move, TEXT("%s is NOT set."), *IA_Move.GetName());
+		checkf(IA_Jump, TEXT("%s is NOT set."), *IA_Jump.GetName());
+		checkf(IA_Shoot,TEXT("%s is NOT set."), *IA_Shoot.GetName());
+
+		EnhancedInput->BindAction(IA_Move, ETriggerEvent::None,      this, &AActionPlayerBase::OnIA_Move);
+		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Move);
+
+		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Started,  this, &AActionPlayerBase::OnIA_Jump);
+		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Ongoing,  this, &AActionPlayerBase::OnIA_Jump);
+		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Jump);
+		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Jump);
+		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Jump);
+
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Started,   this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Ongoing,   this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Shoot);
+		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Shoot);
+
+		EnhancedInput->BindAction(IA_Slide,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Slide);
+	}
+}
+
 void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
 {
 	if (bDead)
@@ -452,11 +458,27 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 	if (bStop || bSliding) return;
 
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
-	if (TriggerEvent == ETriggerEvent::Completed)
+	if (TriggerEvent == ETriggerEvent::Started)
+	{
+		UE_LOG(LogPlayerInput, Display, TEXT("Jump: Started"));
+
+		if (bSlidingWall)
+		{
+			JumpFromWall();
+		}
+	}
+	else if (TriggerEvent == ETriggerEvent::Ongoing)
+	{
+		UE_LOG(LogPlayerInput, Display, TEXT("Jump: Ongoing"));
+
+		if (!bSlidingWall)
+		{
+			Jump();
+		}
+	}
+	else if (TriggerEvent == ETriggerEvent::Completed)
 	{
 		UE_LOG(LogPlayerInput, Display, TEXT("Jump: Completed"));
-
-		StopJumping();
 	}
 	else if (TriggerEvent == ETriggerEvent::Canceled)
 	{
@@ -466,24 +488,8 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 	{
 		UE_LOG(LogPlayerInput, Display, TEXT("Jump: Triggered"));
 
-		if (bSlidingWall)
-		{
-			JumpFromWall();
-		}
-		else
-		{
-			Jump();
-		}
+		StopJumping();
 	}
-}
-
-void AActionPlayerBase::JumpFromWall()
-{
-	FVector LaunchVelocity = FVector(-WallJumpHorizontalLaunch * MoveInputValue,0.f,WallJumpVerticalLaunch);
-	GetCharacterMovement()->FallingLateralFriction = 0.f;
-	GetWorldTimerManager().SetTimer(WallJumpRestoreFallingLateralFrictionTimer,this,&AActionPlayerBase::RestoreFallingLateralFriction,
-									WallJumpRestoreFallingLateralFrictionTime,false);
-	LaunchCharacter(LaunchVelocity,true,true);
 }
 
 void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
@@ -626,4 +632,13 @@ void AActionPlayerBase::SlideFloor()
 	}
 
 	GetCharacterMovement()->ApplyRootMotionSource(SlidingRootMotionSource);
+}
+
+void AActionPlayerBase::JumpFromWall()
+{
+	FVector LaunchVelocity = FVector(-WallJumpHorizontalLaunch * MoveInputValue,0.f,WallJumpVerticalLaunch);
+	GetCharacterMovement()->FallingLateralFriction = 0.f;
+	GetWorldTimerManager().SetTimer(WallJumpRestoreFallingLateralFrictionTimer,this,&AActionPlayerBase::RestoreFallingLateralFriction,
+									WallJumpRestoreFallingLateralFrictionTime,false);
+	LaunchCharacter(LaunchVelocity,true,true);
 }
