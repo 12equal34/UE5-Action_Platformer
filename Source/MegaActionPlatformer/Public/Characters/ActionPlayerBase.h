@@ -27,6 +27,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	//~ End APawn Interface.
 
+	FORCEINLINE AActionPlayerController* GetPlayerController() const { return PlayerController; }
+
 	void SetPlayerController(AActionPlayerController& InPlayerController);
 
 	UFUNCTION(BlueprintPure, Category=Animation)
