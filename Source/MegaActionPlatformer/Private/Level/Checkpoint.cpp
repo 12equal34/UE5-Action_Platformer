@@ -5,6 +5,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "Characters/ActionPlayerBase.h"
 #include "Controllers/ActionPlayerController.h"
+#include "GameMode/ActionGameModeBase.h"
 
 ACheckpoint::ACheckpoint()
 {
@@ -43,13 +44,12 @@ void ACheckpoint::OnBoxBeginOverlap_Implementation(UPrimitiveComponent* Overlapp
 
 		UWorld* World = GetWorld();
 		APlayerStart* NewPlayerStart = World->SpawnActor<APlayerStart>(APlayerStart::StaticClass(),PlayerStartSpawnTransform->GetComponentTransform());
+		check(NewPlayerStart);
 
-		if (AActionPlayerBase* Player = Cast<AActionPlayerBase>(OtherActor))
+		AActionGameModeBase* GameMode = World->GetAuthGameMode<AActionGameModeBase>();
+		if (GameMode)
 		{
-			if (AActionPlayerController* PlayerController = Player->GetPlayerController())
-			{
-				PlayerController->StartSpot = NewPlayerStart;
-			}
+			GameMode->AddPlayerStart(NewPlayerStart);
 		}
 	}
 }

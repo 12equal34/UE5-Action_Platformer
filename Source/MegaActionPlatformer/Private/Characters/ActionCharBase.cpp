@@ -106,6 +106,15 @@ float AActionCharBase::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
+void AActionCharBase::FellOutOfWorld(const UDamageType& dmgType)
+{
+	// Don't use the Super version.
+	if (!bDead)
+	{
+		HPComponent->SetCurrentHP(0.f);
+	}
+}
+
 void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser)
 {
 	if (Damage > 0.f)
@@ -120,12 +129,19 @@ void AActionCharBase::OnStartedDying()
 {
 	bDead = true;
 
-	GetWorldTimerManager().SetTimer(DyingTimer, this, &ThisClass::OnFinishedDying, DyingTime, false);
+	if (DyingTime > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(DyingTimer, this, &ThisClass::OnFinishedDying, DyingTime, false);
+	}
+	else
+	{
+		OnFinishedDying();
+	}
 }
 
 void AActionCharBase::OnFinishedDying()
 {
-	ActionCharDies.Broadcast(GetController());
+	// ActionCharDies.Broadcast(GetController());
 
 	Destroy();
 }

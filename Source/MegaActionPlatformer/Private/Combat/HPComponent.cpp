@@ -40,7 +40,7 @@ void UHPComponent::SetCurrentHP(float InHP, bool bCanExcessMax)
 		OnHPBecameZero.ExecuteIfBound();
 	}
 
-	UE_LOG(LogHP, Display, TEXT("Set HP: %f (%s)(%s)"), HP, HP > MaxHP ? TEXT("Excess") : TEXT("Full"),*GetOwner()->GetName());
+	UE_LOG(LogHP, Display, TEXT("Set HP: %f (%f)(%s)"), HP, MaxHP, *GetOwner()->GetName());
 }
 
 float UHPComponent::Injure(float InDamage)

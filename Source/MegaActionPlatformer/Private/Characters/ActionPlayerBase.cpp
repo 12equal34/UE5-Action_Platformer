@@ -37,6 +37,8 @@ AActionPlayerBase::AActionPlayerBase()
 
 	JumpMaxHoldTime = 0.4f;
 
+	DyingTime = 2.f;
+
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	MovementComp->AirControl = 1.f;
 	MovementComp->FallingLateralFriction = 50.f;
@@ -247,17 +249,9 @@ void AActionPlayerBase::BeginPlay()
 	check(RestoringShotEnergyTimers.IsValid());
 	RestoreShotEnergyIndex = RestoringShotEnergyTimers->Capacity() - 1;
 
-	// adds a delegate on this player character dies.
-	UWorld* World = GetWorld();
-	AActionGameModeBase* GameMode = World->GetAuthGameMode<AActionGameModeBase>();
-	if (GameMode)
-	{
-		OnActionCharDies().AddUObject(GameMode, &AActionGameModeBase::OnPlayerLoses);
-	}
-	else
-	{
-		UE_LOG(LogGameMode,Warning,TEXT("The game mode isn't inherited from AActionGameModeBase."));
-	}
+	// caches this game mode.
+	ActionGameMode = GetWorld()->GetAuthGameMode<AActionGameModeBase>();
+	checkf(ActionGameMode,TEXT("The game mode isn't inherited from AActionGameModeBase or isn't set."));
 }
 
 void AActionPlayerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -362,24 +356,41 @@ void AActionPlayerBase::OnStartedDying()
 {
 	Super::OnStartedDying();
 
-	ACameraActor* Camera = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(),CameraComponent->GetComponentTransform());
-	Camera->GetCameraComponent()->SetAspectRatio(CameraComponent->AspectRatio);
-	Camera->GetCameraComponent()->SetFieldOfView(CameraComponent->FieldOfView);
-	Camera->GetCameraComponent()->bConstrainAspectRatio = false;
-	Camera->SetLifeSpan(DyingTime * 3.f);
-	PlayerController->PlayerCameraManager->SetViewTarget(Camera);
-	PlayerController->PlayerCameraManager->StartCameraFade(0.f, 1.f, DyingTime, FLinearColor::Black);
+	const FTransform& CameraTransform = CameraComponent->GetComponentTransform();
+	const float CameraLifeSpan = ActionGameMode->GetPlayerRespawnTime() + DyingTime + 0.1f;
+	SpawnCamera(CameraTransform, CameraLifeSpan);
+	FadeOutCamera();
 	
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AActionPlayerBase::OnFinishedDying()
 {
-	FVector2D FadeAlpha = PlayerController->PlayerCameraManager->FadeAlpha;
-	FLinearColor FadeColor = PlayerController->PlayerCameraManager->FadeColor;
-	PlayerController->PlayerCameraManager->StartCameraFade(FadeAlpha.Y, 0.f, DyingTime, FadeColor);
+	check(PlayerController);
+
+	ActionGameMode->OnPlayerLoses(*PlayerController);
 
 	Super::OnFinishedDying();
+}
+
+void AActionPlayerBase::SpawnCamera(const FTransform& SpawnTransform,float InLifeSpan)
+{
+	ACameraActor* Camera = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), SpawnTransform);
+	Camera->GetCameraComponent()->SetAspectRatio(CameraComponent->AspectRatio);
+	Camera->GetCameraComponent()->SetFieldOfView(CameraComponent->FieldOfView);
+	Camera->GetCameraComponent()->bConstrainAspectRatio = false;
+	Camera->SetLifeSpan(InLifeSpan);
+	PlayerController->PlayerCameraManager->SetViewTarget(Camera);
+}
+
+void AActionPlayerBase::FadeOutCamera()
+{
+	PlayerController->PlayerCameraManager->StartCameraFade(0.f, 1.f, FadeOutDuration, CameraFadeColor, false, true);
+}
+
+void AActionPlayerBase::FadeInCamera()
+{
+	PlayerController->PlayerCameraManager->StartCameraFade(1.f, 0.f, FadeInDuration, CameraFadeColor, false, true);
 }
 
 //-----------------------------------------------------------------------------

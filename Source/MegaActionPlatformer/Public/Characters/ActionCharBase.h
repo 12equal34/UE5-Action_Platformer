@@ -11,7 +11,7 @@ class UActionFactionComponent;
 class UHPComponent;
 class UFlashComponent;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnActionCharDies, AController*);
+// DECLARE_MULTICAST_DELEGATE_OneParam(FOnActionCharDies, AController*);
 
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionCharBase : public APaperZDCharacter
@@ -34,7 +34,7 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> SpriteMaterialDynamic;
 
-	FOnActionCharDies ActionCharDies;
+	// FOnActionCharDies ActionCharDies;
 
 protected:
 	UPROPERTY(Category=Animation,VisibleAnywhere,BlueprintReadOnly)
@@ -46,7 +46,7 @@ protected:
 	FTimerHandle DyingTimer;
 
 	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float DyingTime = 3.f;
+	float DyingTime = 0.f;
 
 	UPROPERTY(transient,Category=Combat,VisibleInstanceOnly)
 	bool bStop;
@@ -74,7 +74,7 @@ public:
 	FORCEINLINE UMaterialInstanceDynamic& GetSpriteMaterialDynamic() const { check(SpriteMaterialDynamic); return *SpriteMaterialDynamic; }
 	FORCEINLINE UFlashComponent* GetFlashComponent() const { return FlashComponent; }
 
-	FORCEINLINE FOnActionCharDies& OnActionCharDies() { return ActionCharDies; }
+	// FORCEINLINE FOnActionCharDies& OnActionCharDies() { return ActionCharDies; }
 
 	FORCEINLINE bool IsInvincible() const { return bInvincible; }
 
@@ -92,6 +92,7 @@ public:
 
 	//~ Begin AActor Interface.
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	virtual void FellOutOfWorld(const UDamageType& dmgType) override;
 
 protected:
 	virtual void BeginPlay() override;

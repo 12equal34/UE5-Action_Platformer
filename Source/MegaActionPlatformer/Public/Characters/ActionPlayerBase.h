@@ -15,6 +15,7 @@ struct FInputActionInstance;
 class AActionEnemyBase;
 class APlayerProjectileBase;
 class AActionPlayerController;
+class AActionGameModeBase;
 
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionPlayerBase : public AActionCharBase
@@ -208,4 +209,21 @@ private:
 	TUniquePtr<TCircularBuffer<FTimerHandle>> RestoringShotEnergyTimers;
 
 	uint32 RestoreShotEnergyIndex;
+
+public:
+	void SpawnCamera(const FTransform& SpawnTransform, float InLifeSpan);
+	void FadeOutCamera();
+	void FadeInCamera();
+
+	UPROPERTY(Category="Camera|FadeInOut",EditAnywhere)
+	FLinearColor CameraFadeColor = FLinearColor::Black;
+
+	UPROPERTY(Category="Camera|FadeInOut",EditAnywhere)
+	float FadeOutDuration = 1.f;
+
+	UPROPERTY(Category="Camera|FadeInOut",EditAnywhere)
+	float FadeInDuration = 1.f;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AActionGameModeBase> ActionGameMode;
 };

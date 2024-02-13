@@ -8,6 +8,8 @@
 
 AActionPlayerController::AActionPlayerController()
 {
+	bAutoManageActiveCameraTarget = false;
+
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultIMC_Ref(TEXT("/Game/MegaActionPlatformer/Input/IMC_Action.IMC_Action"));
 	check(DefaultIMC_Ref.Succeeded());
 	DefaultIMC = DefaultIMC_Ref.Object;
@@ -18,6 +20,8 @@ void AActionPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	AddDefaultInputMappingContext();
+
+	PlayerCameraManager->SetViewTarget(GetPawn());
 }
 
 void AActionPlayerController::OnPossess(APawn* InPawn)
