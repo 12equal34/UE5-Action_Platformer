@@ -5,6 +5,7 @@
 #include "PaperFlipbookComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "VFX/PaperProjectileVFX.h"
+#include "VFX/LogVFX.h"
 #include "Engine/World.h"
 #include "Factions/ActionFactionComponent.h"
 #include "Characters/ActionCharBase.h"
@@ -19,10 +20,10 @@ AProjectileBase::AProjectileBase()
 	SetRootComponent(SphereComponent);
 	SphereComponent->SetCollisionProfileName(TEXT("Projectile"));
 
-	PaperFlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("PaperFlipbook"));
-	check(PaperFlipbookComponent != nullptr);
-	PaperFlipbookComponent->SetupAttachment(SphereComponent);
-	PaperFlipbookComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Sprite = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("Projectile"));
+	check(Sprite != nullptr);
+	Sprite->SetupAttachment(SphereComponent);
+	Sprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 	check(ProjectileMovementComponent != nullptr);
@@ -53,7 +54,7 @@ void AProjectileBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if (EndPlayReason == EEndPlayReason::Destroyed)
 	{
-		PlayDespawnVFX();
+		PlayDestructVFX();
 	}
 }
 
@@ -62,18 +63,18 @@ void AProjectileBase::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedCompon
 	AActionCharBase* ActionChar = Cast<AActionCharBase>(OtherActor);
 	if (ActionChar)
 	{
-		OnOverlapPlayerOrEnemy(*ActionChar);
+		ApplyDamageTo(*ActionChar);
 	}
 }
 
 void AProjectileBase::OnSphereHit(UPrimitiveComponent* HitComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,FVector NormalImpulse,const FHitResult& Hit)
 {
 	check(OtherActor != nullptr);
-	
-	OnHitStructure(*OtherActor);
+	UE_LOG(LogProjectile, Display, TEXT("%s hits %s."), *GetName(), *OtherActor->GetName());
+	Destroy();
 }
 
-void AProjectileBase::OnOverlapPlayerOrEnemy(AActionCharBase& ActionChar)
+void AProjectileBase::ApplyDamageTo(AActionCharBase& ActionChar)
 {
 	const UActionFactionComponent& MyFaction = *GetFactionComponent();
 	const UActionFactionComponent& CharacterFaction = *ActionChar.GetFactionComponent();
@@ -81,28 +82,21 @@ void AProjectileBase::OnOverlapPlayerOrEnemy(AActionCharBase& ActionChar)
 	if (bHostile)
 	{
 		DamageComponent->ApplyDamage(ActionChar);
-
-		const bool bDestroyed = Destroy();
-		checkf(bDestroyed, TEXT("The projectile is indestructive."));
+		Destroy();
 	}
 }
 
-void AProjectileBase::OnHitStructure(AActor& Structure)
+void AProjectileBase::PlayDestructVFX()
 {
-	UE_LOG(LogProjectile, Display, TEXT("%s hits %s."), *GetName(), *Structure.GetName());
-
-	const bool bDestroyed = Destroy();
-	checkf(bDestroyed, TEXT("The projectile is indestructive."));
-}
-
-void AProjectileBase::PlayDespawnVFX()
-{
-	checkf(DespawnVfxClass != nullptr, TEXT("The DespawnVfxClass property of %s is NOT set."), *GetClass()->GetName());
-	
-	UWorld* World = GetWorld();
-	
-	FActorSpawnParameters Params;
-	Params.bNoFail = true;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	APaperProjectileVFX* DespawnVFX = World->SpawnActor<APaperProjectileVFX>(DespawnVfxClass.Get(), GetActorTransform(), Params);
+	if (DestructVfxClass)
+	{
+		FActorSpawnParameters Params;
+		Params.bNoFail = true;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		APaperProjectileVFX* DespawnVFX = GetWorld()->SpawnActor<APaperProjectileVFX>(DestructVfxClass.Get(), GetActorTransform(), Params);
+	}
+	else
+	{
+		UE_LOG(LogVFX, Warning, TEXT("The %s::DestructVfxClass is NOT set."), *GetClass()->GetName() );
+	}
 }

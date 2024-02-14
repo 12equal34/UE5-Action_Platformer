@@ -56,13 +56,11 @@ protected:
 	void EndChargeShotEnergy();
 	void RestoreShotEnergy();
 
-	void OnPlayerBeginOverlapEnemy(AActionEnemyBase& EnemyActionChar);
-
 	//~ Begin AActionCharBase Interface.
-	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar) override;
 	virtual void OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser) override;
 	virtual void OnStartedDying();
 	virtual void OnFinishedDying();
+	virtual void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult) override;
 	//~ End AActionCharBase Interface.
 
 private:

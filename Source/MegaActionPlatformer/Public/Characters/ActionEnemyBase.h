@@ -15,16 +15,15 @@ class MEGAACTIONPLATFORMER_API AActionEnemyBase : public AActionCharBase
 public:
 	AActionEnemyBase();
 
-	/** Called by the player overlapped */
-	virtual void OnEnemyBeginOverlapPlayer(AActionPlayerBase& PlayerActionChar);
-
 protected:
 	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//~ End AActor Interface.
 
-	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar) override;
+	//~ Begin AActionCharBase Interface.
+	virtual void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult) override;
+	//~ End AActionCharBase Interface.
 
 	void Knockback(AActionCharBase& OtherActionChar);
 

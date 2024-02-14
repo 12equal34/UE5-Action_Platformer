@@ -29,9 +29,18 @@ void AActionEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AActionEnemyBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)
+void AActionEnemyBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
 {
-	Super::OnActionCharBeginOverlap(OtherActionChar);
+	Super::OnCapsuleBeginOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
+
+	if (AActionPlayerBase* PlayerChar = Cast<AActionPlayerBase>(OtherActor))
+	{
+		TouchDamageComponent->ApplyDamage(*PlayerChar);
+		if (bCanKnockback)
+		{
+			Knockback(*PlayerChar);
+		}
+	}
 }
 
 void AActionEnemyBase::Knockback(AActionCharBase& OtherActionChar)
@@ -42,13 +51,4 @@ void AActionEnemyBase::Knockback(AActionCharBase& OtherActionChar)
 	LaunchVelocity.Z = VerticalKnockbackPower;
 	OtherActionChar.LaunchCharacter(LaunchVelocity, true, true);
 	OtherActionChar.OnKnockbacked(KnockbackTime);
-}
-
-void AActionEnemyBase::OnEnemyBeginOverlapPlayer(AActionPlayerBase& PlayerActionChar)
-{
-	TouchDamageComponent->ApplyDamage(PlayerActionChar);
-	if (bCanKnockback)
-	{
-		Knockback(PlayerActionChar);
-	}
 }

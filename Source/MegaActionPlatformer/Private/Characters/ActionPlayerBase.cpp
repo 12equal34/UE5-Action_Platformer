@@ -331,22 +331,6 @@ void AActionPlayerBase::RestoreShotEnergy()
 	UE_LOG(LogPlayer,Display, TEXT("The player's shot energy is restored. (now shot energy: %d)"), ShotEnergy);
 }
 
-void AActionPlayerBase::OnPlayerBeginOverlapEnemy(AActionEnemyBase& EnemyActionChar)
-{
-	checkNoRecursion();
-	EnemyActionChar.OnEnemyBeginOverlapPlayer(*this);
-}
-
-void AActionPlayerBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)
-{
-	Super::OnActionCharBeginOverlap(OtherActionChar);
-
-	if (AActionEnemyBase* EnemyActionChar = Cast<AActionEnemyBase>(&OtherActionChar))
-	{
-		OnPlayerBeginOverlapEnemy(*EnemyActionChar);
-	}
-}
-
 void AActionPlayerBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser)
 {
 	Super::OnAppliedAnyDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
@@ -371,6 +355,12 @@ void AActionPlayerBase::OnFinishedDying()
 	ActionGameMode->OnPlayerLoses(*PlayerController);
 
 	Super::OnFinishedDying();
+}
+
+void AActionPlayerBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
+{
+	Super::OnCapsuleBeginOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
+
 }
 
 void AActionPlayerBase::SpawnCamera(const FTransform& SpawnTransform,float InLifeSpan)

@@ -33,18 +33,14 @@ protected:
 	//~ End AActor Interface.
 
 	FORCEINLINE USphereComponent* GetSphere() const { return SphereComponent; }
-	FORCEINLINE UPaperFlipbookComponent* GetPaperFlipbook() const { return PaperFlipbookComponent; }
+	FORCEINLINE UPaperFlipbookComponent* GetSprite() const { return Sprite; }
 	FORCEINLINE UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovementComponent; }
 	FORCEINLINE UDamageComponent* GetDamageComponent() const { return DamageComponent; }
 
-	/** When this projectile hits a player or a enemy, acts */
-	virtual void OnOverlapPlayerOrEnemy(AActionCharBase& ActionChar);
-
-	/** e.g. this projectile hits a wall. */
-	virtual void OnHitStructure(AActor& Structure);
+	virtual void ApplyDamageTo(AActionCharBase& ActionChar);
 
 private:
-	void PlayDespawnVFX();
+	void PlayDestructVFX();
 
 	UFUNCTION()
 	void OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -56,13 +52,13 @@ private:
 	TObjectPtr<USphereComponent> SphereComponent;
 
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UPaperFlipbookComponent> PaperFlipbookComponent;
+	TObjectPtr<UPaperFlipbookComponent> Sprite;
 
 	UPROPERTY(Category=Movement,VisibleAnywhere)
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
 
 	UPROPERTY(Category=VFX,EditDefaultsOnly)
-	TSubclassOf<class APaperProjectileVFX> DespawnVfxClass;
+	TSubclassOf<class APaperProjectileVFX> DestructVfxClass;
 
 	UPROPERTY(Category=Faction,VisibleAnywhere)
 	TObjectPtr<UActionFactionComponent> FactionComponent;

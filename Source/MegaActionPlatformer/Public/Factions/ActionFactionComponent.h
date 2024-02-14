@@ -11,9 +11,7 @@ enum class EActionFaction : uint8
 {
 	EAF_None,
 	EAF_Player,
-	EAF_Enemy,
-	EAF_Neutrality,
-	EAF_NPC
+	EAF_Enemy
 };
 
 USTRUCT()
@@ -31,10 +29,9 @@ struct FActionFaction
 	bool operator==(const FActionFaction& InFaction) const { return Type == InFaction.Type; }
 	bool operator!=(const FActionFaction& InFaction) const { return Type != InFaction.Type; }
 
-	bool IsSameFaction(const FActionFaction& InFaction) const { return *this == InFaction; }
-	bool IsDifferentFaction(const FActionFaction& InFaction) const { return !IsSameFaction(InFaction); }
+	bool IsSameFaction(const FActionFaction& InFaction) const { return Type == InFaction.Type;}
+	bool IsDifferentFaction(const FActionFaction& InFaction) const { return Type != InFaction.Type; }
 };
-
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MEGAACTIONPLATFORMER_API UActionFactionComponent : public UActorComponent
@@ -53,8 +50,9 @@ public:
 
 	void SetFaction(EActionFaction InType);
 	void SetFaction(FActionFaction InFaction);
+
 	FORCEINLINE FActionFaction GetFaction() const { return Faction; }
+
 protected:
 	virtual void BeginPlay() override;
-
 };

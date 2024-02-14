@@ -11,8 +11,6 @@ class UActionFactionComponent;
 class UHPComponent;
 class UFlashComponent;
 
-// DECLARE_MULTICAST_DELEGATE_OneParam(FOnActionCharDies, AController*);
-
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionCharBase : public APaperZDCharacter
 {
@@ -33,8 +31,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> SpriteMaterialDynamic;
-
-	// FOnActionCharDies ActionCharDies;
 
 protected:
 	UPROPERTY(Category=Animation,VisibleAnywhere,BlueprintReadOnly)
@@ -69,12 +65,10 @@ protected:
 public:
 	AActionCharBase();
 
-	FORCEINLINE UActionFactionComponent* GetFactionComponent() const { return FactionComponent; }
-	FORCEINLINE UHPComponent* GetHPComponent() const { return HPComponent; }
+	FORCEINLINE UActionFactionComponent*  GetFactionComponent() const { return FactionComponent; }
+	FORCEINLINE UHPComponent*             GetHPComponent() const { return HPComponent; }
 	FORCEINLINE UMaterialInstanceDynamic& GetSpriteMaterialDynamic() const { check(SpriteMaterialDynamic); return *SpriteMaterialDynamic; }
-	FORCEINLINE UFlashComponent* GetFlashComponent() const { return FlashComponent; }
-
-	// FORCEINLINE FOnActionCharDies& OnActionCharDies() { return ActionCharDies; }
+	FORCEINLINE UFlashComponent*          GetFlashComponent() const { return FlashComponent; }
 
 	FORCEINLINE bool IsInvincible() const { return bInvincible; }
 
@@ -82,9 +76,8 @@ protected:
 	UFUNCTION()
 	virtual void OnAppliedAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
-private:
 	UFUNCTION()
-	void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	virtual void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 public:
 	void OnKnockbacked(float KnockbackTime);
@@ -99,7 +92,6 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//~ End AActor Interface.
 
-	virtual void OnActionCharBeginOverlap(AActionCharBase& OtherActionChar);
 	virtual void OnStartedDying();
 	virtual void OnFinishedDying();
 

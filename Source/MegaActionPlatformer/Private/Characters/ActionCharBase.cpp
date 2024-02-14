@@ -141,8 +141,6 @@ void AActionCharBase::OnStartedDying()
 
 void AActionCharBase::OnFinishedDying()
 {
-	// ActionCharDies.Broadcast(GetController());
-
 	Destroy();
 }
 
@@ -161,10 +159,6 @@ void AActionCharBase::FinishInvincible()
 
 void AActionCharBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
 {
-	if (AActionCharBase* OtherActionChar = Cast<AActionCharBase>(OtherActor))
-	{
-		OnActionCharBeginOverlap(*OtherActionChar);
-	}
 }
 
 void AActionCharBase::OnKnockbacked(float KnockbackTime)
@@ -187,10 +181,6 @@ void AActionCharBase::OnInvinciblized(float InInvisibleTime)
 	{
 		GetWorldTimerManager().SetTimer(FinishInvincibleTimer, this, &AActionCharBase::FinishInvincible, InInvisibleTime, false);
 	}
-}
-
-void AActionCharBase::OnActionCharBeginOverlap(AActionCharBase& OtherActionChar)
-{
 }
 
 void AActionCharBase::RestoreFallingLateralFriction()
