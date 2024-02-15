@@ -52,7 +52,7 @@ AActionPlayerBase::AActionPlayerBase()
 	FactionComp->SetFaction(EActionFaction::EAF_Player);
 
 	UHPComponent* HPComp = GetHPComponent();
-	HPComp->SetMaximumHP(100.f);
+	HPComp->SetMaxHP(10.f);
 
 	/**
 	* Create Default Subobjects.

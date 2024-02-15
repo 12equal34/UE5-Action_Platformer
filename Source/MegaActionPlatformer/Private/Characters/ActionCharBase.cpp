@@ -80,7 +80,7 @@ void AActionCharBase::BeginPlay()
 
 	OnTakeAnyDamage.AddDynamic(this, &AActionCharBase::OnAppliedAnyDamage);
 
-	HPComponent->OnHPBecameZero.BindUObject(this, &AActionCharBase::OnStartedDying);
+	HPComponent->OnHPBecomeZero.AddDynamic(this, &AActionCharBase::OnStartedDying);
 	bDead = HPComponent->IsZero();
 
 	SpriteMaterialDynamic = GetSprite()->CreateDynamicMaterialInstance(0);
@@ -111,7 +111,7 @@ void AActionCharBase::FellOutOfWorld(const UDamageType& dmgType)
 	// Don't use the Super version.
 	if (!bDead)
 	{
-		HPComponent->SetCurrentHP(0.f);
+		HPComponent->SetHP(0.f);
 	}
 }
 

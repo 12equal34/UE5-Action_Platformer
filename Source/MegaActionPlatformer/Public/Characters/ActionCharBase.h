@@ -17,7 +17,7 @@ class MEGAACTIONPLATFORMER_API AActionCharBase : public APaperZDCharacter
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(Category=Combat,VisibleAnywhere)
+	UPROPERTY(Category=Combat,VisibleAnywhere,BlueprintReadWrite,meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UHPComponent> HPComponent;
 
 	UPROPERTY(Category=Combat,VisibleAnywhere)
@@ -92,6 +92,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//~ End AActor Interface.
 
+	UFUNCTION()
 	virtual void OnStartedDying();
 	virtual void OnFinishedDying();
 

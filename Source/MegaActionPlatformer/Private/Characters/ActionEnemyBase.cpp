@@ -13,7 +13,7 @@ AActionEnemyBase::AActionEnemyBase()
 	FactionComp->SetFaction(EActionFaction::EAF_Enemy);
 
 	UHPComponent* HPComp = GetHPComponent();
-	HPComp->SetMaximumHP(10.f);
+	HPComp->SetMaxHP(10.f);
 
 	TouchDamageComponent = CreateDefaultSubobject<UDamageComponent>(TEXT("TouchDamage"));
 	check(TouchDamageComponent);

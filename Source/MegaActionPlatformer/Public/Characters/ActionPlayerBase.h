@@ -240,4 +240,8 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ACameraRestrictor> OverlappingCameraRestrictor;
+
+public:
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE AActionGameModeBase* GetActionGameMode() const { return ActionGameMode; }
 };
