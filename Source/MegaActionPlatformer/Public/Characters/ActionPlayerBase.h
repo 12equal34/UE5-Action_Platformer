@@ -16,6 +16,7 @@ class AActionEnemyBase;
 class APlayerProjectileBase;
 class AActionPlayerController;
 class AActionGameModeBase;
+class ACameraRestrictor;
 
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionPlayerBase : public AActionCharBase
@@ -212,7 +213,12 @@ public:
 	void SpawnCamera(const FTransform& SpawnTransform, float InLifeSpan);
 	void FadeOutCamera();
 	void FadeInCamera();
+	
+	void SetOverlappingCameraRestrictor(ACameraRestrictor* InCameraRestrictor);
 
+	void UpdateCameraPosition(float DeltaTime);
+
+private:
 	UPROPERTY(Category="Camera|FadeInOut",EditAnywhere)
 	FLinearColor CameraFadeColor = FLinearColor::Black;
 
@@ -222,6 +228,16 @@ public:
 	UPROPERTY(Category="Camera|FadeInOut",EditAnywhere)
 	float FadeInDuration = 1.f;
 
+	UPROPERTY(Category="Camera",EditAnywhere)
+	FVector CameraOffset = FVector(0.f, 0.f, 100.f);
+
+	/** If a speed <= 0.f, then immediately move to the target pos. */
+	UPROPERTY(Category="Camera",EditAnywhere)
+	float CameraInterpSpeed = 2.f;
+
 	UPROPERTY(Transient)
 	TObjectPtr<AActionGameModeBase> ActionGameMode;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ACameraRestrictor> OverlappingCameraRestrictor;
 };

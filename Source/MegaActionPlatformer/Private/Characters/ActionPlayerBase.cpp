@@ -16,6 +16,8 @@
 #include "GameFramework/RootMotionSource.h"
 #include "GameMode/ActionGameModeBase.h"
 
+#include "Level/CameraRestrictor.h"
+
 #include "EnhancedInputComponent.h"
 
 #include "Projectiles/PlayerProjectileBase.h"
@@ -58,8 +60,9 @@ AActionPlayerBase::AActionPlayerBase()
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	check(SpringArmComponent);
 	SpringArmComponent->SetupAttachment(GetRootComponent());
+	SpringArmComponent->SetUsingAbsoluteLocation(true);
 	SpringArmComponent->SetUsingAbsoluteRotation(true);
-	SpringArmComponent->SetWorldRotation(FRotator(-15.f, -90.f, 0.f));
+	SpringArmComponent->SetWorldRotation(FRotator(0.f, -90.f, 0.f));
 	SpringArmComponent->TargetArmLength = 500.f;
 	SpringArmComponent->bDoCollisionTest = false;
 
@@ -145,6 +148,25 @@ void AActionPlayerBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTi
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
 
 	TryWallSliding();
+
+	UpdateCameraPosition(DeltaTime);
+}
+
+void AActionPlayerBase::UpdateCameraPosition(float DeltaTime)
+{
+	// Interlerp the camera position from current to target.
+	const FVector Current = SpringArmComponent->GetComponentLocation();
+	FVector Target;
+	if (OverlappingCameraRestrictor)
+	{
+		Target = OverlappingCameraRestrictor->GetCamreaPosition();
+	}
+	else
+	{
+		Target = GetActorLocation() + CameraOffset;
+	}
+	FVector CameraPosition = FMath::VInterpTo(Current, Target, DeltaTime, CameraInterpSpeed);
+	SpringArmComponent->SetWorldLocation(CameraPosition);
 }
 
 float AActionPlayerBase::TakeDamage(float Damage,FDamageEvent const& DamageEvent,AController* EventInstigator,AActor* DamageCauser)
@@ -381,6 +403,11 @@ void AActionPlayerBase::FadeOutCamera()
 void AActionPlayerBase::FadeInCamera()
 {
 	PlayerController->PlayerCameraManager->StartCameraFade(1.f, 0.f, FadeInDuration, CameraFadeColor, false, true);
+}
+
+void AActionPlayerBase::SetOverlappingCameraRestrictor(ACameraRestrictor* InCameraRestrictor)
+{
+	OverlappingCameraRestrictor = InCameraRestrictor;
 }
 
 //-----------------------------------------------------------------------------
