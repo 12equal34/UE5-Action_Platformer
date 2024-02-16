@@ -4,6 +4,7 @@
 #include "Engine/PlayerStartPIE.h"
 #include "Characters/ActionPlayerBase.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 
 void AActionGameModeBase::OnPlayerLoses(AActionPlayerController& Player)
 {
@@ -43,6 +44,12 @@ void AActionGameModeBase::BeginPlay()
 void AActionGameModeBase::RespawnPlayer(AActionPlayerController* PlayerController)
 {
 	AActionPlayerBase* ActionPlayer = SpawnActionPlayerPawnFor(PlayerController, PlayerStarts.Last());
+
+	// Play a respawn sound.
+	if (PlayerRespawnSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, PlayerRespawnSound, ActionPlayer->GetActorLocation());
+	}
 
 	PlayerController->SetPawn(ActionPlayer);
 	PlayerController->Possess(ActionPlayer);

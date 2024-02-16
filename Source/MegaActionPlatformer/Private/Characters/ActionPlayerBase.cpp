@@ -15,6 +15,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/RootMotionSource.h"
 #include "GameMode/ActionGameModeBase.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
 
 #include "Level/CameraRestrictor.h"
 
@@ -300,7 +302,7 @@ void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjec
 
 	FTimerManager& TM = World->GetTimerManager();
 
-	// spawns the projectile owned by this.
+	// Spawn the projectile owned by this.
 	FActorSpawnParameters Params;
 	Params.bNoFail = true;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -312,7 +314,7 @@ void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjec
 		Params);
 	UE_LOG(LogPlayer,Display, TEXT("Shoot! : %s is spawned by %s"), *Projectile->GetName(), *GetName());
 	
-	// decreases a shot energy and sets a timer for restoring the energy.
+	// Decrease a shot energy and set a timer for restoring the energy.
 	check(RestoringShotEnergyTimers.IsValid());
 	TCircularBuffer<FTimerHandle>& Timers = *RestoringShotEnergyTimers.Get();
 	ShotEnergy--;
@@ -320,7 +322,7 @@ void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjec
 	RestoreShotEnergyIndex = Timers.GetNextIndex(RestoreShotEnergyIndex);
 	TM.SetTimer(Timers[RestoreShotEnergyIndex],this,&AActionPlayerBase::RestoreShotEnergy,ShotEnergyRestoreTime,false);
 
-	// sets bShooting to false after ShootingTime.
+	// Set bShooting to false after ShootingTime.
 	TM.SetTimer(EndShootTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
 }
 
@@ -333,6 +335,16 @@ void AActionPlayerBase::StartChargeShotEnergy()
 {
 	GetFlashComponent()->PlayFlashFromStart(ChargeFlashName);
 	bCharging = true;
+
+	// Play a charging sound loopingly.
+	if (ChargingSound)
+	{
+		UAudioComponent* Audio = UGameplayStatics::SpawnSoundAttached(ChargingSound, GetSprite());
+		if (!Audio)
+		{
+			UE_LOG(LogTemp, Display, TEXT("Not spawned sound attached to sprite"));
+		}
+	}
 }
 
 void AActionPlayerBase::EndChargeShotEnergy()
@@ -343,6 +355,16 @@ void AActionPlayerBase::EndChargeShotEnergy()
 		FlashComp->FinishFlash();
 	}
 	bCharging = false;
+
+	// Stop playing the current charging sound.
+	if (ChargingSound)
+	{
+		if (UAudioComponent* Audio = Cast<UAudioComponent>(GetSprite()->GetChildComponent(0)))
+		{
+			Audio->Stop();
+			Audio->DestroyComponent();
+		}
+	}
 }
 
 void AActionPlayerBase::RestoreShotEnergy()
@@ -494,6 +516,11 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 		{
 			JumpFromWall();
 		}
+
+		if (JumpingSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, JumpingSound, GetActorLocation());
+		}
 	}
 	else if (TriggerEvent == ETriggerEvent::Ongoing)
 	{
@@ -623,26 +650,33 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 
 void AActionPlayerBase::OnIA_Slide()
 {
-	if (bDead)
+	if (bDead || !bCanSliding || GetCharacterMovement()->IsFalling())
 	{
 		return;
 	}
-	if (!bCanSliding || GetCharacterMovement()->IsFalling()) return;
+
+	// Set sliding timers for sliding cooltime and animation.
 	bCanSliding = false;
 	bSliding = true;
-	
 	const float SlideDelay = SlideDuration + DelayAfterSliding;
 	check(SlideDelay >= SlideDuration);
 	GetWorldTimerManager().SetTimer(EnableSlideTimer, this, &AActionPlayerBase::EnableSlide, SlideDelay, false);
 	GetWorldTimerManager().SetTimer(EndSlideTimer,    this, &AActionPlayerBase::EndSlide, SlideDuration, false);
-
-	OnInvinciblized(SlideDuration);
 
 	SlideFloor();
 }
 
 void AActionPlayerBase::SlideFloor()
 {
+	// Sliding have a invicible ability for SlideDuration.
+	OnInvinciblized(SlideDuration);
+
+	// Play Sound
+	if (SlidingSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, SlidingSound, GetActorLocation());
+	}
+
 	// Create a root motion source
 	TSharedPtr<FRootMotionSource_ConstantForce> SlidingRootMotionSource = MakeShared<FRootMotionSource_ConstantForce>();
 	SlidingRootMotionSource->InstanceName = FName("SlidingConstantForce");
@@ -654,11 +688,11 @@ void AActionPlayerBase::SlideFloor()
 	SlidingRootMotionSource->FinishVelocityParams.Mode = ERootMotionFinishVelocityMode::SetVelocity;
 	SlidingRootMotionSource->FinishVelocityParams.SetVelocity = FVector::Zero();
 
+	// Apply a Sliding root motion.
 	if (bEnableGravityForSliding)
 	{
 		SlidingRootMotionSource->Settings.SetFlag(ERootMotionSourceSettingsFlags::IgnoreZAccumulate);
 	}
-
 	GetCharacterMovement()->ApplyRootMotionSource(SlidingRootMotionSource);
 }
 

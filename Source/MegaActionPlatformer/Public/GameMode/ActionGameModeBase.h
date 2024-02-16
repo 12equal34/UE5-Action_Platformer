@@ -36,4 +36,7 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<APlayerStart*> PlayerStarts;
+
+	UPROPERTY(Category=Sounds,EditDefaultsOnly)
+	TObjectPtr<USoundBase> PlayerRespawnSound;
 };

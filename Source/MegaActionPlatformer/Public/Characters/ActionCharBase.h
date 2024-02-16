@@ -102,4 +102,8 @@ private:
 	void PlayDestructionVFX();
 	void FinishStop();
 	void FinishInvincible();
+
+protected:
+	UPROPERTY(Category=Sounds,EditDefaultsOnly)
+	TObjectPtr<USoundBase> HitSound;
 };

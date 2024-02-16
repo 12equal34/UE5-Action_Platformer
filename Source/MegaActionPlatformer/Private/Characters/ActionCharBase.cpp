@@ -12,6 +12,7 @@
 #include "VFX/FlashComponent.h"
 #include "Curves/CurveLinearColor.h"
 #include "Curves/CurveFloat.h"
+#include "Kismet/GameplayStatics.h"
 
 AActionCharBase::AActionCharBase()
 {
@@ -122,6 +123,11 @@ void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const
 		HPComponent->Injure(Damage);
 		FlashComponent->PlayFlashFromStart(HitFlashName);
 		OnInvinciblized(DamagedInvisibleTime);
+
+		if (HitSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+		}
 	}
 }
 

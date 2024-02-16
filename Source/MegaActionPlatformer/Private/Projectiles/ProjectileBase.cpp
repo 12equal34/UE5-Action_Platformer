@@ -46,6 +46,11 @@ void AProjectileBase::BeginPlay()
 	
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, & AProjectileBase::OnSphereBeginOverlap);
 	SphereComponent->OnComponentHit.AddDynamic(this, &AProjectileBase::OnSphereHit);
+
+	if (BeginPlaySound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, BeginPlaySound, GetActorLocation());
+	}
 }
 
 void AProjectileBase::EndPlay(const EEndPlayReason::Type EndPlayReason)

@@ -65,4 +65,8 @@ private:
 
 	UPROPERTY(Category=Combat,VisibleAnywhere)
 	TObjectPtr<UDamageComponent> DamageComponent;
+
+	/** The projectile plays this sound when it is begin played. Set a shot sound. */
+	UPROPERTY(Category=Sounds,EditDefaultsOnly)
+	TObjectPtr<USoundBase> BeginPlaySound;
 };

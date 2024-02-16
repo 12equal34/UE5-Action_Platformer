@@ -22,52 +22,14 @@ UCLASS()
 class MEGAACTIONPLATFORMER_API AActionPlayerBase : public AActionCharBase
 {
 	GENERATED_BODY()
-public:
-	AActionPlayerBase();
-
-	//~ Begin APawn Interface.
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	//~ End APawn Interface.
-
-	FORCEINLINE AActionPlayerController* GetPlayerController() const { return PlayerController; }
-
-	void SetPlayerController(AActionPlayerController& InPlayerController);
-
-	UFUNCTION(BlueprintPure, Category=Animation)
-	bool IsShooting() const;
-
-	UFUNCTION(BlueprintPure, Category=Animation)
-	bool IsSlidingWall() const;
-
-	UFUNCTION(BlueprintPure, Category=Animation)
-	bool IsSliding() const;
-
-	//~ Begin AActor Interface.
-	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction);
-	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
-
-protected:
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	//~ End AActor Interface.
-
-	void Shoot(const TSubclassOf<APlayerProjectileBase>& InProjectileClass);
-	void EndShoot();
-	void StartChargeShotEnergy();
-	void EndChargeShotEnergy();
-	void RestoreShotEnergy();
-
-	//~ Begin AActionCharBase Interface.
-	virtual void OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser) override;
-	virtual void OnStartedDying();
-	virtual void OnFinishedDying();
-	virtual void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult) override;
-	//~ End AActionCharBase Interface.
 
 private:
 	/** a cached pointer to a player controller */
 	UPROPERTY(Transient)
 	TObjectPtr<AActionPlayerController> PlayerController;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AActionGameModeBase> ActionGameMode;
 
 	UPROPERTY(Category=Camera,VisibleAnywhere)
 	TObjectPtr<class USpringArmComponent> SpringArmComponent;
@@ -75,7 +37,33 @@ private:
 	UPROPERTY(Category=Camera,VisibleAnywhere)
 	TObjectPtr<class UCameraComponent> CameraComponent;
 
-	FName ChargeFlashName;
+public:
+	AActionPlayerBase();
+
+	void SetPlayerController(AActionPlayerController& InPlayerController);
+	FORCEINLINE AActionPlayerController* GetPlayerController() const { return PlayerController; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE AActionGameModeBase* GetActionGameMode() const { return ActionGameMode; }
+
+	//~ Begin APawn Interface.
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	//~ End APawn Interface.
+
+	//~ Begin AActor Interface.
+	virtual void  TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction);
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	//~ End AActor Interface.
+
+	//~ Begin AActionCharBase Interface.
+	virtual void OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser) override;
+	virtual void OnStartedDying();
+	virtual void OnFinishedDying();
+	virtual void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult) override;
+	//~ End AActionCharBase Interface.
 
 private:
 	void OnIA_Move(const FInputActionInstance& Instance);
@@ -98,6 +86,13 @@ private:
 	/** Player's move input: Left is -1.0, right is 1.0, and No input is 0. */
 	UPROPERTY(Category=Input,VisibleInstanceOnly)
 	float MoveInputValue;
+
+public:
+	UFUNCTION(BlueprintPure, Category=Animation)
+	bool IsSlidingWall() const;
+
+	UFUNCTION(BlueprintPure, Category=Animation)
+	bool IsSliding() const;
 
 private:
 	void TryWallSliding();
@@ -156,6 +151,17 @@ private:
 
 	bool bCanSliding = true;
 
+public:
+	UFUNCTION(BlueprintPure, Category=Animation)
+	bool IsShooting() const;
+
+protected:
+	void Shoot(const TSubclassOf<APlayerProjectileBase>& InProjectileClass);
+	void EndShoot();
+	void StartChargeShotEnergy();
+	void EndChargeShotEnergy();
+	void RestoreShotEnergy();
+
 private:
 	UPROPERTY(Category="Combat|Muzzle",VisibleAnywhere)
 	TObjectPtr<USceneComponent> Muzzle;
@@ -209,6 +215,8 @@ private:
 
 	uint32 RestoreShotEnergyIndex;
 
+	FName ChargeFlashName;
+
 public:
 	void SpawnCamera(const FTransform& SpawnTransform, float InLifeSpan);
 	void FadeOutCamera();
@@ -236,12 +244,15 @@ private:
 	float CameraInterpSpeed = 2.f;
 
 	UPROPERTY(Transient)
-	TObjectPtr<AActionGameModeBase> ActionGameMode;
-
-	UPROPERTY(Transient)
 	TObjectPtr<ACameraRestrictor> OverlappingCameraRestrictor;
 
-public:
-	UFUNCTION(BlueprintPure)
-	FORCEINLINE AActionGameModeBase* GetActionGameMode() const { return ActionGameMode; }
+private:
+	UPROPERTY(Category=Sounds,EditDefaultsOnly)
+	TObjectPtr<USoundBase> SlidingSound;
+
+	UPROPERTY(Category=Sounds,EditDefaultsOnly)
+	TObjectPtr<USoundBase> JumpingSound;
+
+	UPROPERTY(Category=Sounds,EditDefaultsOnly)
+	TObjectPtr<USoundBase> ChargingSound;
 };
