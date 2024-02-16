@@ -237,11 +237,11 @@ private:
 	float FadeInDuration = 1.f;
 
 	UPROPERTY(Category="Camera",EditAnywhere)
-	FVector CameraOffset = FVector(0.f, 0.f, 100.f);
+	FVector CameraOffset = FVector(0.f, 0.f, 200.f);
 
 	/** If a speed <= 0.f, then immediately move to the target pos. */
 	UPROPERTY(Category="Camera",EditAnywhere)
-	float CameraInterpSpeed = 2.f;
+	float CameraInterpSpeed = 3.f;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ACameraRestrictor> OverlappingCameraRestrictor;

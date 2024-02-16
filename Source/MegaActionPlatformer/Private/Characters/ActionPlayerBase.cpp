@@ -71,6 +71,8 @@ AActionPlayerBase::AActionPlayerBase()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	check(CameraComponent);
 	CameraComponent->SetupAttachment(SpringArmComponent);
+	CameraComponent->SetProjectionMode(ECameraProjectionMode::Orthographic);
+	CameraComponent->SetOrthoWidth(2048.f);
 
 	Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
 	check(Muzzle);
@@ -264,6 +266,8 @@ void AActionPlayerBase::EnableSlide()
 void AActionPlayerBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SpringArmComponent->SetWorldLocation(GetActorLocation() + CameraOffset);
 
 	// makes the restoring shot energy timers buffer.
 	ShotEnergy = MaxShotEnergy;

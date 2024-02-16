@@ -18,10 +18,10 @@ AActionCharBase::AActionCharBase()
 {
 	UPaperFlipbookComponent* MySprite = GetSprite();
 	check(MySprite);
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Game/MegaActionPlatformer/Materials/MI_CustomLitSpriteMaterial.MI_CustomLitSpriteMaterial"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Game/MegaActionPlatformer/Materials/MI_CustomUnlitSpriteMaterial.MI_CustomUnlitSpriteMaterial"));
 	check(MaskedMaterialRef.Succeeded());
 	MySprite->SetMaterial(0, MaskedMaterialRef.Object);
-	MySprite->SetCastShadow(true);
+	MySprite->SetCastShadow(false);
 
 	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
 	check(CapsuleComp);
