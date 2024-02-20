@@ -21,6 +21,9 @@ public:
 
 	FORCEINLINE float GetPlayerRespawnTime() const { return PlayerRespawnTime; }
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void WinPlayer(AActionPlayerController* Player);
+
 protected:
 	virtual void BeginPlay() override;
 

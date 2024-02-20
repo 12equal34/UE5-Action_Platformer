@@ -18,7 +18,7 @@ void UHPComponent::InitializeComponent()
 	HealFully();
 }
 
-void UHPComponent::SetMaxHP(float InMaxHP)
+void UHPComponent::SetMaxHP(float InMaxHP, AActor* Instigator)
 {
 	checkf(InMaxHP > 0.f, TEXT("You can't set the maximum HP by a nonpositive number."));
 	MaxHP = InMaxHP;
@@ -26,7 +26,7 @@ void UHPComponent::SetMaxHP(float InMaxHP)
 	UE_LOG(LogHP, Display, TEXT("Set Maximum HP: %f (%s)"), MaxHP, *GetOwner()->GetName());
 }
 
-void UHPComponent::SetHP(float InHP, bool bCanExcessMax)
+void UHPComponent::SetHP(float InHP, AActor* Instigator, bool bCanExcessMax)
 {
 	checkf(InHP >= 0.f, TEXT("You can't set the current HP by a negative number."));
 	if (HP == InHP)
@@ -40,16 +40,16 @@ void UHPComponent::SetHP(float InHP, bool bCanExcessMax)
 		HP = FMath::Min(HP, MaxHP);
 	}
 
-	OnHPChange.Broadcast();
+	OnHPChange.Broadcast(Instigator);
 	if (IsZero())
 	{
-		OnHPBecomeZero.Broadcast();
+		OnHPBecomeZero.Broadcast(Instigator);
 	}
 
 	UE_LOG(LogHP, Display, TEXT("Set HP: %f (%f)(%s)"), HP, MaxHP, *GetOwner()->GetName());
 }
 
-float UHPComponent::Injure(float InDamage)
+float UHPComponent::Injure(float InDamage, AActor* Instigator)
 {
 	checkf(InDamage >= 0.f, TEXT("Received damage is innegative."));
 	if (HP == 0.f || InDamage == 0.f)
@@ -59,10 +59,10 @@ float UHPComponent::Injure(float InDamage)
 
 	HP = FMath::Clamp(HP - InDamage, 0.f, MaxHP);
 
-	OnHPChange.Broadcast();
+	OnHPChange.Broadcast(Instigator);
 	if (IsZero())
 	{
-		OnHPBecomeZero.Broadcast();
+		OnHPBecomeZero.Broadcast(Instigator);
 	}
 
 	UE_LOG(LogHP, Display, TEXT("HP: %f (Injured)(%s)"), HP, *GetOwner()->GetName());
@@ -70,7 +70,7 @@ float UHPComponent::Injure(float InDamage)
 	return HP;
 }
 
-float UHPComponent::Heal(float InHealth, bool bCanExcessMax)
+float UHPComponent::Heal(float InHealth, AActor* Instigator, bool bCanExcessMax)
 {
 	checkf(InHealth >= 0.f, TEXT("Received health is innegative."));
 	if (InHealth == 0.f)
@@ -88,7 +88,7 @@ float UHPComponent::Heal(float InHealth, bool bCanExcessMax)
 
 	if (HP != OldHP)
 	{
-		OnHPChange.Broadcast();
+		OnHPChange.Broadcast(Instigator);
 	}
 
 	UE_LOG(LogHP, Display, TEXT("HP: %f (Healed)(%s)"), HP, *GetOwner()->GetName());
@@ -96,17 +96,17 @@ float UHPComponent::Heal(float InHealth, bool bCanExcessMax)
 	return HP;
 }
 
-float UHPComponent::HealRatio(float InRatio, bool bCanExcessMax)
+float UHPComponent::HealRatio(float InRatio, AActor* Instigator, bool bCanExcessMax)
 {
 	check(InRatio >= 0.f && InRatio <= 1.f);
 	const float Health = MaxHP * InRatio;
 
 	UE_LOG(LogHP, Display, TEXT("HP: %f (Healed)(%s)"), HP, *GetOwner()->GetName());
 
-	return Heal(Health, bCanExcessMax);
+	return Heal(Health, Instigator, bCanExcessMax);
 }
 
-void UHPComponent::HealFully()
+void UHPComponent::HealFully(AActor* Instigator)
 {
 	if (HP == MaxHP)
 	{
@@ -115,7 +115,7 @@ void UHPComponent::HealFully()
 
 	HP = MaxHP;
 
-	OnHPChange.Broadcast();
+	OnHPChange.Broadcast(Instigator);
 
 	UE_LOG(LogHP, Display, TEXT("HP: %f (Full Healed)(%s)"), HP, *GetOwner()->GetName());
 }

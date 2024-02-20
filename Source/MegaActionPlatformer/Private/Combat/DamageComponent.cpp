@@ -2,6 +2,7 @@
 #include "Combat/DamageComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Characters/ActionCharBase.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UDamageComponent::UDamageComponent()
 {
@@ -18,11 +19,45 @@ float UDamageComponent::ApplyDamage(AActionCharBase& DamagedActionChar)
 {
 	if (Damage != 0.f)
 	{
+		if (bCanKnockback)
+		{
+			Knockback(DamagedActionChar);
+		}
+		
 		FDamageEvent DamageEvent(DamageTypeClass);
 		return DamagedActionChar.TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 	}
 
 	return 0.f;
+}
+
+void UDamageComponent::Knockback(AActionCharBase& OtherActionChar)
+{
+	const bool bIsFlying = OtherActionChar.GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Flying;
+	if (!bIsFlying)
+	{
+		FVector LaunchVelocity;
+		const bool bOtherIsOnLeftSide = OtherActionChar.GetActorLocation().X < GetOwner()->GetActorLocation().X;
+		LaunchVelocity.X = HorizontalKnockbackPower * (bOtherIsOnLeftSide ? -1.f : 1.f);
+		LaunchVelocity.Z = VerticalKnockbackPower;
+		const bool bXYOverride = true;
+		const bool bZOverride = true;
+		OtherActionChar.LaunchCharacter(LaunchVelocity, bXYOverride, bZOverride);
+	}
+	else
+	{
+		FVector ImpulseDir = OtherActionChar.GetActorLocation() - GetOwner()->GetActorLocation();
+		ImpulseDir.Normalize();
+		const FVector Impulse = HorizontalKnockbackPower * ImpulseDir;
+		const bool bVelocityChange = true;
+		OtherActionChar.GetCharacterMovement()->AddImpulse(Impulse, bVelocityChange);
+	}
+	OtherActionChar.OnKnockbacked(KnockbackTime);
+}
+
+void UDamageComponent::SetCanKnockback(bool bInCanKnockback)
+{
+	bCanKnockback = bInCanKnockback;
 }
 
 void UDamageComponent::BeginPlay()

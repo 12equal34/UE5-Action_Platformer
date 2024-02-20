@@ -79,8 +79,6 @@ void AActionCharBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	OnTakeAnyDamage.AddDynamic(this, &AActionCharBase::OnAppliedAnyDamage);
-
 	HPComponent->OnHPBecomeZero.AddDynamic(this, &AActionCharBase::OnStartedDying);
 	bDead = HPComponent->IsZero();
 
@@ -104,7 +102,23 @@ void AActionCharBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 float AActionCharBase::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	// do not modify damage parameters after this
+	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	if (ActualDamage > 0.f)
+	{
+		AActor* DamageInstigator = DamageCauser ? DamageCauser->GetInstigator() : nullptr;
+		HPComponent->Injure(Damage, DamageInstigator);
+		FlashComponent->PlayFlashFromStart(HitFlashName);
+		OnInvinciblized(DamagedInvisibleTime);
+
+		if (HitSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+		}
+	}
+
+	return ActualDamage;
 }
 
 void AActionCharBase::FellOutOfWorld(const UDamageType& dmgType)
@@ -116,22 +130,7 @@ void AActionCharBase::FellOutOfWorld(const UDamageType& dmgType)
 	}
 }
 
-void AActionCharBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser)
-{
-	if (Damage > 0.f)
-	{
-		HPComponent->Injure(Damage);
-		FlashComponent->PlayFlashFromStart(HitFlashName);
-		OnInvinciblized(DamagedInvisibleTime);
-
-		if (HitSound)
-		{
-			UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
-		}
-	}
-}
-
-void AActionCharBase::OnStartedDying()
+void AActionCharBase::OnStartedDying(AActor* Causer)
 {
 	bDead = true;
 
@@ -154,6 +153,10 @@ void AActionCharBase::FinishStop()
 {
 	RestoreFallingLateralFriction();
 	bStop = false;
+}
+
+void AActionCharBase::FinishHurt()
+{
 	bHurt = false;
 }
 
@@ -169,22 +172,30 @@ void AActionCharBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedCompo
 
 void AActionCharBase::OnKnockbacked(float KnockbackTime)
 {
-	GetCharacterMovement()->FallingLateralFriction = 0.f;
-	bStop = true;
+	if (KnockbackTime > 0.f)
+	{
+		bStop = true;
+		GetCharacterMovement()->FallingLateralFriction = 0.f;
+		GetWorldTimerManager().SetTimer(FinishStopTimer, this, &AActionCharBase::FinishStop, KnockbackTime, false);
+	}
 
-	GetAnimInstance()->JumpToNode(TEXT("JumpHurt"));
-	bHurt = true;
-
-	check(KnockbackTime > 0.f);
-	GetWorldTimerManager().SetTimer(FinishStopTimer, this, &AActionCharBase::FinishStop, KnockbackTime, false);
+	if (HurtTime > 0.f)
+	{
+		bHurt = true;
+		if (UPaperZDAnimInstance* PaperAnimInstance = GetAnimInstance())
+		{
+			PaperAnimInstance->JumpToNode(TEXT("JumpHurt"));
+		}
+		GetWorldTimerManager().SetTimer(FinishHurtTimer, this, &AActionCharBase::FinishHurt, HurtTime, false);
+	}
 }
 
 void AActionCharBase::OnInvinciblized(float InInvisibleTime)
 {
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-	bInvincible = true;
 	if (InInvisibleTime > 0.f)
 	{
+		GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+		bInvincible = true;
 		GetWorldTimerManager().SetTimer(FinishInvincibleTimer, this, &AActionCharBase::FinishInvincible, InInvisibleTime, false);
 	}
 }

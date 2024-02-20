@@ -3,9 +3,13 @@
 
 #include "Projectiles/PlayerProjectileBase.h"
 #include "Factions/ActionFactionComponent.h"
+#include "Combat/DamageComponent.h"
 
 APlayerProjectileBase::APlayerProjectileBase()
 {
 	UActionFactionComponent* FactionComp = GetFactionComponent();
 	FactionComp->SetFaction(EActionFaction::EAF_Player);
+
+	UDamageComponent* DamageComp = GetDamageComponent();
+	DamageComp->SetCanKnockback(true);
 }

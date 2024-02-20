@@ -17,6 +17,7 @@ AActionEnemyBase::AActionEnemyBase()
 
 	TouchDamageComponent = CreateDefaultSubobject<UDamageComponent>(TEXT("TouchDamage"));
 	check(TouchDamageComponent);
+	TouchDamageComponent->SetCanKnockback(true);
 }
 
 void AActionEnemyBase::BeginPlay()
@@ -36,19 +37,5 @@ void AActionEnemyBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComp
 	if (AActionPlayerBase* PlayerChar = Cast<AActionPlayerBase>(OtherActor))
 	{
 		TouchDamageComponent->ApplyDamage(*PlayerChar);
-		if (bCanKnockback)
-		{
-			Knockback(*PlayerChar);
-		}
 	}
-}
-
-void AActionEnemyBase::Knockback(AActionCharBase& OtherActionChar)
-{
-	const bool bOtherIsOnLeftSide = OtherActionChar.GetActorLocation().X < GetActorLocation().X;
-	FVector LaunchVelocity;
-	LaunchVelocity.X = HorizontalKnockbackPower * (bOtherIsOnLeftSide ? -1.f : 1.f);
-	LaunchVelocity.Z = VerticalKnockbackPower;
-	OtherActionChar.LaunchCharacter(LaunchVelocity, true, true);
-	OtherActionChar.OnKnockbacked(KnockbackTime);
 }

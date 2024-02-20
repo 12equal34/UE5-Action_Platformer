@@ -6,8 +6,6 @@
 #include "Characters/ActionCharBase.h"
 #include "ActionEnemyBase.generated.h"
 
-class AActionPlayerBase;
-
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionEnemyBase : public AActionCharBase
 {
@@ -25,21 +23,7 @@ protected:
 	virtual void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult) override;
 	//~ End AActionCharBase Interface.
 
-	void Knockback(AActionCharBase& OtherActionChar);
-
 private:
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float HorizontalKnockbackPower = 500.f;
-
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float VerticalKnockbackPower = 500.f;
-
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	float KnockbackTime = 0.3f;
-
-	UPROPERTY(Category=Combat,EditDefaultsOnly)
-	bool bCanKnockback = true;
-
 	UPROPERTY(Category=Combat,VisibleAnywhere)
 	TObjectPtr<class UDamageComponent> TouchDamageComponent;
 };

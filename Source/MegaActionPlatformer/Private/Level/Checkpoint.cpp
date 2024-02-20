@@ -19,7 +19,6 @@ ACheckpoint::ACheckpoint()
 	BoxComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	BoxComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	BoxComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &ACheckpoint::OnBoxBeginOverlap);
 	BoxComponent->SetBoxExtent(FVector(50.f,50.f,500.f));
 	BoxComponent->SetupAttachment(RootTransform);
 	BoxComponent->SetRelativeLocation(FVector(0.f,0.f,BoxComponent->GetUnscaledBoxExtent().Z));
@@ -33,12 +32,13 @@ ACheckpoint::ACheckpoint()
 void ACheckpoint::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &ACheckpoint::OnBoxBeginOverlap);
 }
 
 void ACheckpoint::OnBoxBeginOverlap_Implementation(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
 {
-	if (!bCheck)
+	if (!bCheck && Cast<AActionPlayerBase>(OtherActor))
 	{
 		bCheck = true;
 

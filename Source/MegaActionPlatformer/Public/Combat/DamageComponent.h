@@ -22,6 +22,10 @@ public:
 
 	virtual float ApplyDamage(AActionCharBase& DamagedActionChar);
 
+	void Knockback(AActionCharBase& OtherActionChar);
+
+	void SetCanKnockback(bool bInCanKnockback);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -37,4 +41,16 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<AController> EventInstigator;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	float HorizontalKnockbackPower = 500.f;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	float VerticalKnockbackPower = 500.f;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	float KnockbackTime = 0.3f;
+
+	UPROPERTY(Category=Combat,EditDefaultsOnly)
+	bool bCanKnockback = false;
 };

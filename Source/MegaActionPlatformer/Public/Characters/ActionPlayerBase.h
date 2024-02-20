@@ -59,8 +59,7 @@ protected:
 	//~ End AActor Interface.
 
 	//~ Begin AActionCharBase Interface.
-	virtual void OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser) override;
-	virtual void OnStartedDying();
+	virtual void OnStartedDying(AActor* Causer);
 	virtual void OnFinishedDying();
 	virtual void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult) override;
 	//~ End AActionCharBase Interface.

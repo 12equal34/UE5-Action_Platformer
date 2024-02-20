@@ -7,8 +7,8 @@
 #include "Delegates/Delegate.h"
 #include "HPComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHPChangeSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHPBecomeZeroSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHPChangeSignature, AActor*, Instigator);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHPBecomeZeroSignature, AActor*, Instigator);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MEGAACTIONPLATFORMER_API UHPComponent : public UActorComponent
@@ -21,10 +21,10 @@ public:
 	virtual void InitializeComponent() override;
 
 	UFUNCTION(BlueprintCallable)
-	void SetMaxHP(float InMaxHP);
+	void SetMaxHP(float InMaxHP, AActor* Instigator = nullptr);
 
 	UFUNCTION(BlueprintCallable)
-	void SetHP(float InHP, bool bCanExcessMax = false);
+	void SetHP(float InHP, AActor* Instigator = nullptr, bool bCanExcessMax = false);
 
 	UFUNCTION(BlueprintPure)
 	FORCEINLINE float GetMaxHP() const { return MaxHP; }
@@ -36,15 +36,15 @@ public:
 	FORCEINLINE float GetRatioHP() const { return HP / MaxHP; }
 
 	/** returns the HP after damaged. */
-	float Injure(float InDamage);
+	float Injure(float InDamage, AActor* Instigator = nullptr);
 
 	/** returns the HP after healed. */
-	float Heal(float InHealth, bool bCanExcessMax = false);
+	float Heal(float InHealth, AActor* Instigator = nullptr, bool bCanExcessMax = false);
 
 	/** returns the HP after healed. */
-	float HealRatio(float InRatio, bool bCanExcessMax = false);
+	float HealRatio(float InRatio, AActor* Instigator = nullptr, bool bCanExcessMax = false);
 
-	void HealFully();
+	void HealFully(AActor* Instigator = nullptr);
 
 	UFUNCTION(BlueprintPure)
 	bool IsZero() const;

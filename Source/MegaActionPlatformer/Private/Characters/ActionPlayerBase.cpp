@@ -42,6 +42,7 @@ AActionPlayerBase::AActionPlayerBase()
 	JumpMaxHoldTime = 0.4f;
 
 	DyingTime = 2.f;
+	DamagedInvisibleTime = 1.f;
 
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	MovementComp->AirControl = 1.f;
@@ -177,7 +178,7 @@ float AActionPlayerBase::TakeDamage(float Damage,FDamageEvent const& DamageEvent
 {
 	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	if (ActualDamage != 0.f)
+	if (ActualDamage > 0.f)
 	{
 		EndShoot();
 		bIsHurtForShooting = true;
@@ -379,14 +380,9 @@ void AActionPlayerBase::RestoreShotEnergy()
 	UE_LOG(LogPlayer,Display, TEXT("The player's shot energy is restored. (now shot energy: %d)"), ShotEnergy);
 }
 
-void AActionPlayerBase::OnAppliedAnyDamage(AActor* DamagedActor,float Damage,const UDamageType* DamageType,AController* InstigatedBy,AActor* DamageCauser)
+void AActionPlayerBase::OnStartedDying(AActor* Causer)
 {
-	Super::OnAppliedAnyDamage(DamagedActor, Damage, DamageType, InstigatedBy, DamageCauser);
-}
-
-void AActionPlayerBase::OnStartedDying()
-{
-	Super::OnStartedDying();
+	Super::OnStartedDying(Causer);
 
 	const FTransform& CameraTransform = CameraComponent->GetComponentTransform();
 	const float CameraLifeSpan = ActionGameMode->GetPlayerRespawnTime() + DyingTime + 0.1f;
@@ -489,6 +485,11 @@ void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
 
 	if (bStop || bSliding) return;
 
+	if (bHurt)
+	{
+		bHurt = false;
+	}
+
 	MoveInputValue = Instance.GetValue().Get<float>();
 	if (MoveInputValue == 0.f)
 	{
@@ -510,6 +511,11 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 		return;
 	}
 	if (bStop || bSliding) return;
+
+	if (bHurt)
+	{
+		bHurt = false;
+	}
 
 	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
 	if (TriggerEvent == ETriggerEvent::Started)
