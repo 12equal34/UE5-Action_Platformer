@@ -17,6 +17,7 @@ class APlayerProjectileBase;
 class AActionPlayerController;
 class AActionGameModeBase;
 class ACameraRestrictor;
+class ALadderDetector;
 
 UCLASS()
 class MEGAACTIONPLATFORMER_API AActionPlayerBase : public AActionCharBase
@@ -46,29 +47,34 @@ public:
 	UFUNCTION(BlueprintPure)
 	FORCEINLINE AActionGameModeBase* GetActionGameMode() const { return ActionGameMode; }
 
+	//~ Begin AActionCharBase Interface.
+	virtual void OnKnockbacked(float KnockbackTime) override;
+	virtual void OnHurt() override;
+
 	//~ Begin APawn Interface.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	//~ End APawn Interface.
-
+	
 	//~ Begin AActor Interface.
 	virtual void  TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction);
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//~ End AActor Interface.
-
-	//~ Begin AActionCharBase Interface.
-	virtual void OnStartedDying(AActor* Causer);
-	virtual void OnFinishedDying();
-	virtual void OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult) override;
+	//~ End APawn Interface.
+	
+	virtual void OnStartedDying(AActor* Causer) override;
+	virtual void OnFinishedDying() override;
 	//~ End AActionCharBase Interface.
 
 private:
-	void OnIA_Move(const FInputActionInstance& Instance);
+	void OnIA_Move(const FInputActionValue& Value);
 	void OnIA_Jump(const FInputActionInstance& Instance);
 	void OnIA_Shoot(const FInputActionInstance& Instance);
 	void OnIA_Slide();
+
+	void ResetMoveInputValue();
 
 	UPROPERTY(Category=Input,EditDefaultsOnly)
 	TObjectPtr<UInputAction> IA_Move;
@@ -84,30 +90,60 @@ private:
 
 	/** Player's move input: Left is -1.0, right is 1.0, and No input is 0. */
 	UPROPERTY(Category=Input,VisibleInstanceOnly)
-	float MoveInputValue;
+	float MoveInputX;
+
+	/** Player's move input: Down is -1.0, Up is 1.0, and No input is 0. */
+	UPROPERTY(Category=Input,VisibleInstanceOnly)
+	float MoveInputY;
 
 public:
+	UFUNCTION(BlueprintPure, Category=MoveInput)
+	FORCEINLINE float GetMoveInputX() const { return MoveInputX; }
+
+	UFUNCTION(BlueprintPure, Category=MoveInput)
+	FORCEINLINE float GetMoveInputY() const { return MoveInputY; }
+
 	UFUNCTION(BlueprintPure, Category=Animation)
 	bool IsSlidingWall() const;
 
 	UFUNCTION(BlueprintPure, Category=Animation)
 	bool IsSliding() const;
 
+	UFUNCTION(BlueprintPure, Category=Animation)
+	bool IsClimbing() const;
+
+	void SetOverlappingLadder(ALadderDetector* InLadderDetector);
+
+	FORCEINLINE ALadderDetector* GetOverlappingLadder() const { return OverlappingLadder; }
+
 private:
-	void TryWallSliding();
+	void JumpLaunchTo(float HorizontalDirection);
 	void JumpFromWall();
+	void JumpFromLadder();
+
+	// Wall Sliding
+	void TryWallSliding();
 	void TransferWallSlidingState();
 	void TransferNotWallSlidingState();
 
+	// Floor Sliding
 	void SlideFloor();
 	void EndSlide();
 	void EnableSlide();
+
+	// Ladder Climbing
+	void StartClimbLadder();
+	void EndClimbLadder();
+	void EnableClimb();
 
 	UPROPERTY(Category="Animation|Sliding",VisibleInstanceOnly)
 	bool bSlidingWall;
 
 	UPROPERTY(Category="Animation|Sliding",VisibleInstanceOnly)
 	bool bSliding;
+
+	UPROPERTY(Category="Animation|Climbing",VisibleInstanceOnly)
+	bool bClimbingLadder;
 
 	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly,meta=(ClampMin="0"))
 	float WallTraceLength = 40.f;
@@ -118,14 +154,14 @@ private:
 	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly,meta=(ClampMin="0"))
 	float WallSlidingMinVelocity = 20.f;
 
-	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly,meta=(ClampMin="0"))
-	float WallJumpRestoreFallingLateralFrictionTime = 0.25f;
+	UPROPERTY(Category="Movement|Falling",EditDefaultsOnly,meta=(ClampMin="0"))
+	float RestoreFallingLateralFrictionTime = 0.25f;
 
-	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly)
-	float WallJumpVerticalLaunch = 1500.f;
+	UPROPERTY(Category="Movement|Launch",EditDefaultsOnly)
+	float JumpVerticalLaunch = 1500.f;
 
-	UPROPERTY(Category="Movement|WallSlide",EditDefaultsOnly)
-	float WallJumpHorizontalLaunch = 800.f;
+	UPROPERTY(Category="Movement|Launch",EditDefaultsOnly)
+	float JumpHorizontalLaunch = 800.f;
 
 	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly,meta=(ClampMin="0"))
 	float SlidingForce = 2000.f;
@@ -133,7 +169,7 @@ private:
 	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly,meta=(ClampMin="0"))
 	float SlideDuration = 0.3f;
 
-	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly,meta=(ClampMin="0"))
+	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly,meta=(ClampMin="0.1"))
 	float DelayAfterSliding = 0.3f;
 
 	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly)
@@ -142,13 +178,20 @@ private:
 	UPROPERTY(Category="Movement|FloorSlide",EditDefaultsOnly)
 	bool bEnableGravityForSliding;
 
-	FTimerHandle WallJumpRestoreFallingLateralFrictionTimer;
+	UPROPERTY(Category="Movement|Climbing",EditDefaultsOnly,meta=(ClampMin="0.1"))
+	float DelayAfterClimbing = 0.3f;
 
+	FTimerHandle RestoreFallingLateralFrictionTimer;
 	FTimerHandle EndSlideTimer;
-
 	FTimerHandle EnableSlideTimer;
+	FTimerHandle EnableClimbTimer;
 
 	bool bCanSliding = true;
+	bool bWallIsOnRight;
+	bool bDelayingToClimb = false;
+
+	UPROPERTY(Transient,Category="Movement|Climbing",VisibleInstanceOnly)
+	TObjectPtr<ALadderDetector> OverlappingLadder;
 
 public:
 	UFUNCTION(BlueprintPure, Category=Animation)
@@ -171,6 +214,9 @@ private:
 	UPROPERTY(Category="Combat|Muzzle",EditDefaultsOnly)
 	FVector MuzzleLocationForSlidingWall;
 
+	UPROPERTY(Category="Combat|Muzzle",EditDefaultsOnly)
+	FVector MuzzleLocationForClimbingLadder;
+
 	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
 	TSubclassOf<APlayerProjectileBase> NormalProjectileClass;
 
@@ -185,9 +231,6 @@ private:
 	
 	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
 	float ShotEnergyRestoreTime = 1.f;
-
-	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly)
-	bool bIsHurtForShooting;
 
 	UPROPERTY(Category="Combat|Shot",EditDefaultsOnly,meta=(ClampMin="0"))
 	int32 MaxShotEnergy = 3;

@@ -8,6 +8,7 @@
 #include "Camera/CameraComponent.h"
 #include "Camera/CameraActor.h"
 #include "PaperFlipbookComponent.h"
+#include "PaperZDAnimInstance.h"
 #include "Components/SceneComponent.h"
 #include "Components/CapsuleComponent.h"
 
@@ -19,6 +20,7 @@
 #include "Components/AudioComponent.h"
 
 #include "Level/CameraRestrictor.h"
+#include "Level/LadderDetector.h"
 
 #include "EnhancedInputComponent.h"
 
@@ -44,12 +46,17 @@ AActionPlayerBase::AActionPlayerBase()
 	DyingTime = 2.f;
 	DamagedInvisibleTime = 1.f;
 
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+	CapsuleComp->SetCapsuleHalfHeight(60.f);
+	CapsuleComp->SetCapsuleRadius(24.f);
+
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	MovementComp->AirControl = 1.f;
 	MovementComp->FallingLateralFriction = 50.f;
+	MovementComp->BrakingDecelerationFlying = 10000.f;
 
 	UPaperFlipbookComponent* MySprite = GetSprite();
-	MySprite->SetRelativeLocation(FVector(-5.f, -0.1f, 13.9f));
+	MySprite->SetRelativeLocation(FVector(0.f, -0.1f, 13.9f));
 
 	UActionFactionComponent* FactionComp = GetFactionComponent();
 	FactionComp->SetFaction(EActionFaction::EAF_Player);
@@ -75,11 +82,15 @@ AActionPlayerBase::AActionPlayerBase()
 	CameraComponent->SetProjectionMode(ECameraProjectionMode::Orthographic);
 	CameraComponent->SetOrthoWidth(2048.f);
 
+	/**
+	* Setup muzzle locations to fit various animations.
+	*/
 	Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
 	check(Muzzle);
 	Muzzle->SetupAttachment(GetRootComponent());
-	MuzzleLocation               = FVector(53.f, 0.f, 8.f);
-	MuzzleLocationForSlidingWall = FVector(-77.f, 0.f, 4.f);
+	MuzzleLocation                  = FVector(53.f, 0.f, 8.f);
+	MuzzleLocationForSlidingWall    = FVector(-77.f, 0.f, 4.f);
+	MuzzleLocationForClimbingLadder = FVector(69.f, 0.f, 28.f);
 	Muzzle->SetRelativeLocation(MuzzleLocation);
 
 	/**
@@ -148,11 +159,24 @@ bool AActionPlayerBase::IsSliding() const
 	return bSliding;
 }
 
+bool AActionPlayerBase::IsClimbing() const
+{
+	return bClimbingLadder;
+}
+
+void AActionPlayerBase::SetOverlappingLadder(ALadderDetector* InLadderDetector)
+{
+	OverlappingLadder = InLadderDetector;
+}
+
 void AActionPlayerBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
 
-	TryWallSliding();
+	if (MoveInputX != 0.f)
+	{
+		TryWallSliding();
+	}
 
 	UpdateCameraPosition(DeltaTime);
 }
@@ -177,18 +201,32 @@ void AActionPlayerBase::UpdateCameraPosition(float DeltaTime)
 float AActionPlayerBase::TakeDamage(float Damage,FDamageEvent const& DamageEvent,AController* EventInstigator,AActor* DamageCauser)
 {
 	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	return ActualDamage;
+}
 
-	if (ActualDamage > 0.f)
+void AActionPlayerBase::OnKnockbacked(float KnockbackTime)
+{
+	Super::OnKnockbacked(KnockbackTime);
+
+	if (bSliding)
 	{
-		EndShoot();
-		bIsHurtForShooting = true;
-		if (bCharging)
-		{
-			EndChargeShotEnergy();
-		}
+		EndSlide();
+	}
+	
+	if (bSlidingWall)
+	{
+		TransferNotWallSlidingState();
 	}
 
-	return ActualDamage;
+	if (bClimbingLadder)
+	{
+		EndClimbLadder();
+	}
+}
+
+void AActionPlayerBase::OnHurt()
+{
+	Super::OnHurt();
 }
 
 void AActionPlayerBase::TryWallSliding()
@@ -202,7 +240,8 @@ void AActionPlayerBase::TryWallSliding()
 	}
 
 	// And needs to input keeping.
-	const bool bWallAndInputValueAreSameDirection = 0.f < MoveInputValue * GetActorForwardVector().X;
+	const float ToWallIfExists = GetActorForwardVector().X;
+	const bool bWallAndInputValueAreSameDirection = 0.f < MoveInputX * ToWallIfExists;
 	if (!bWallAndInputValueAreSameDirection) 
 	{
 		TransferNotWallSlidingState();
@@ -224,12 +263,66 @@ void AActionPlayerBase::TryWallSliding()
 		TransferNotWallSlidingState();
 		return;
 	}
+	bWallIsOnRight = ToWallIfExists > 0.f;
 
 	// Slide the wall.
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	MovementComp->Velocity.Z = FMath::Max(FallingVelocity, -WallSlidingMaxVelocity);
 	MovementComp->UpdateComponentVelocity();
 	TransferWallSlidingState();
+}
+
+void AActionPlayerBase::SlideFloor()
+{
+	// Sliding have a invicible ability for SlideDuration.
+	OnInvinciblized(SlideDuration);
+
+	// Play Sound
+	if (SlidingSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, SlidingSound, GetActorLocation());
+	}
+
+	// Create a root motion source
+	TSharedPtr<FRootMotionSource_ConstantForce> SlidingRootMotionSource = MakeShared<FRootMotionSource_ConstantForce>();
+	SlidingRootMotionSource->InstanceName = FName("SlidingConstantForce");
+	SlidingRootMotionSource->AccumulateMode = ERootMotionAccumulateMode::Override;
+	SlidingRootMotionSource->Priority = 5;
+	SlidingRootMotionSource->Force = GetActorForwardVector() * SlidingForce;
+	SlidingRootMotionSource->Duration = SlideDuration;
+	SlidingRootMotionSource->StrengthOverTime = SlidingStrengthOverTime;
+	SlidingRootMotionSource->FinishVelocityParams.Mode = ERootMotionFinishVelocityMode::SetVelocity;
+	SlidingRootMotionSource->FinishVelocityParams.SetVelocity = FVector::Zero();
+
+	// Apply a Sliding root motion.
+	if (bEnableGravityForSliding)
+	{
+		SlidingRootMotionSource->Settings.SetFlag(ERootMotionSourceSettingsFlags::IgnoreZAccumulate);
+	}
+	GetCharacterMovement()->ApplyRootMotionSource(SlidingRootMotionSource);
+}
+
+void AActionPlayerBase::JumpLaunchTo(float HorizontalDirection)
+{
+	FVector LaunchVelocity = FVector(JumpHorizontalLaunch * HorizontalDirection, 0.f, JumpVerticalLaunch);
+	GetCharacterMovement()->FallingLateralFriction = 0.f;
+	GetWorldTimerManager().SetTimer(RestoreFallingLateralFrictionTimer,this,&AActionPlayerBase::RestoreFallingLateralFriction,
+									RestoreFallingLateralFrictionTime,false);
+	LaunchCharacter(LaunchVelocity,true,true);
+}
+
+void AActionPlayerBase::JumpFromWall()
+{
+	float OppositeToWall = bWallIsOnRight ? -1.f : 1.f;
+	JumpLaunchTo(OppositeToWall);
+}
+
+void AActionPlayerBase::JumpFromLadder()
+{
+	EndClimbLadder();
+
+	float InputDirection = MoveInputX;
+	JumpLaunchTo(InputDirection);
 }
 
 void AActionPlayerBase::TransferWallSlidingState()
@@ -239,7 +332,6 @@ void AActionPlayerBase::TransferWallSlidingState()
 		bSlidingWall = true;
 		Muzzle->SetRelativeLocation(MuzzleLocationForSlidingWall);
 		Muzzle->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
-		GetSprite()->SetRelativeLocation(FVector(6.5f, -0.1f, 13.9f));
 	}
 }
 
@@ -250,7 +342,6 @@ void AActionPlayerBase::TransferNotWallSlidingState()
 		bSlidingWall = false;
 		Muzzle->SetRelativeLocation(MuzzleLocation);
 		Muzzle->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
-		GetSprite()->SetRelativeLocation(FVector(-5.f, -0.1f, 13.9f));
 	}
 }
 
@@ -262,6 +353,48 @@ void AActionPlayerBase::EndSlide()
 void AActionPlayerBase::EnableSlide()
 {
 	bCanSliding = true;
+}
+
+void AActionPlayerBase::StartClimbLadder()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+
+	FVector NewLocation;
+	NewLocation.X = OverlappingLadder->GetActorLocation().X;
+	NewLocation.Y = GetActorLocation().Y;
+	NewLocation.Z = GetActorLocation().Z;
+	SetActorLocation(NewLocation);
+	GetCharacterMovement()->Velocity = FVector::ZeroVector;
+
+	// For animation
+	bClimbingLadder = true;
+	if (UPaperZDAnimInstance* PaperAnimInstance = GetAnimInstance())
+	{
+		PaperAnimInstance->JumpToNode(TEXT("JumpClimb"));
+	}
+
+	// For adjusting muzzle
+	Muzzle->SetRelativeLocation(MuzzleLocationForClimbingLadder);
+}
+
+void AActionPlayerBase::EndClimbLadder()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+
+	// For animation
+	bClimbingLadder = false;
+
+	// For adjusting muzzle
+	Muzzle->SetRelativeLocation(MuzzleLocation);
+
+	// For delay
+	bDelayingToClimb = true;
+	GetWorldTimerManager().SetTimer(EnableClimbTimer, this, &AActionPlayerBase::EnableClimb, DelayAfterClimbing, false);
+}
+
+void AActionPlayerBase::EnableClimb()
+{
+	bDelayingToClimb = false;
 }
 
 void AActionPlayerBase::BeginPlay()
@@ -290,6 +423,10 @@ void AActionPlayerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjectileClass)
 {
+	// For animation.
+	bShooting = true;
+	GetWorldTimerManager().SetTimer(EndShootTimer,this,&AActionPlayerBase::EndShoot,ShootingTime,false);
+
 	if (InProjectileClass.Get() == nullptr)
 	{
 		UE_LOG(LogPlayer,Warning, TEXT("Failed to shoot. The player have not the projectile class."));
@@ -302,18 +439,13 @@ void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjec
 		return;
 	}
 
-	UWorld* World = GetWorld();
-	check(World != nullptr);
-
-	FTimerManager& TM = World->GetTimerManager();
-
 	// Spawn the projectile owned by this.
 	FActorSpawnParameters Params;
 	Params.bNoFail = true;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	Params.Owner = this;
 	Params.Instigator = this;
-	APlayerProjectileBase* Projectile = World->SpawnActor<APlayerProjectileBase>(
+	APlayerProjectileBase* Projectile = GetWorld()->SpawnActor<APlayerProjectileBase>(
 		InProjectileClass.Get(),
 		Muzzle->GetComponentTransform(),
 		Params);
@@ -325,21 +457,25 @@ void AActionPlayerBase::Shoot(const TSubclassOf<APlayerProjectileBase>& InProjec
 	ShotEnergy--;
 	UE_LOG(LogPlayer,Display, TEXT("Shot energy : %d"), ShotEnergy);
 	RestoreShotEnergyIndex = Timers.GetNextIndex(RestoreShotEnergyIndex);
-	TM.SetTimer(Timers[RestoreShotEnergyIndex],this,&AActionPlayerBase::RestoreShotEnergy,ShotEnergyRestoreTime,false);
-
-	// Set bShooting to false after ShootingTime.
-	TM.SetTimer(EndShootTimer, this, &AActionPlayerBase::EndShoot, ShootingTime, false);
+	GetWorldTimerManager().SetTimer(Timers[RestoreShotEnergyIndex],this,&AActionPlayerBase::RestoreShotEnergy,ShotEnergyRestoreTime,false);
 }
 
 void AActionPlayerBase::EndShoot()
 {
-	bShooting = false;
+	if (bShooting)
+	{
+		bShooting = false;
+	}
+
+	if (bCharging)
+	{
+		EndChargeShotEnergy();
+	}
 }
 
 void AActionPlayerBase::StartChargeShotEnergy()
 {
 	GetFlashComponent()->PlayFlashFromStart(ChargeFlashName);
-	bCharging = true;
 
 	// Play a charging sound loopingly.
 	if (ChargingSound)
@@ -388,8 +524,6 @@ void AActionPlayerBase::OnStartedDying(AActor* Causer)
 	const float CameraLifeSpan = ActionGameMode->GetPlayerRespawnTime() + DyingTime + 0.1f;
 	SpawnCamera(CameraTransform, CameraLifeSpan);
 	FadeOutCamera();
-	
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AActionPlayerBase::OnFinishedDying()
@@ -399,12 +533,6 @@ void AActionPlayerBase::OnFinishedDying()
 	ActionGameMode->OnPlayerLoses(*PlayerController);
 
 	Super::OnFinishedDying();
-}
-
-void AActionPlayerBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
-{
-	Super::OnCapsuleBeginOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-
 }
 
 void AActionPlayerBase::SpawnCamera(const FTransform& SpawnTransform,float InLifeSpan)
@@ -441,67 +569,92 @@ void AActionPlayerBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent);
-	if (ensure(EnhancedInput))
-	{
-		checkf(IA_Move, TEXT("%s is NOT set."), *IA_Move.GetName());
-		checkf(IA_Jump, TEXT("%s is NOT set."), *IA_Jump.GetName());
-		checkf(IA_Shoot,TEXT("%s is NOT set."), *IA_Shoot.GetName());
+	checkf(EnhancedInput, TEXT("The PlayerInputComponent can NOT cast a UEnhancedInputComponent."));
 
-		EnhancedInput->BindAction(IA_Move, ETriggerEvent::None,      this, &AActionPlayerBase::OnIA_Move);
-		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Move);
+	checkf(IA_Move, TEXT("%s is NOT set."), *IA_Move.GetName());
+	checkf(IA_Jump, TEXT("%s is NOT set."), *IA_Jump.GetName());
+	checkf(IA_Shoot,TEXT("%s is NOT set."), *IA_Shoot.GetName());
 
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Started,  this, &AActionPlayerBase::OnIA_Jump);
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Ongoing,  this, &AActionPlayerBase::OnIA_Jump);
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Jump);
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Jump);
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Jump);
+	EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Move);
+	EnhancedInput->BindAction(IA_Move, ETriggerEvent::Completed, this, &AActionPlayerBase::ResetMoveInputValue);
 
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Started,   this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Ongoing,   this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Shoot);
-		EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Shoot);
+	EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Started,  this, &AActionPlayerBase::OnIA_Jump);
+	EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Ongoing,  this, &AActionPlayerBase::OnIA_Jump);
+	EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Jump);
+	EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Jump);
+	EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Jump);
 
-		EnhancedInput->BindAction(IA_Slide,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Slide);
-	}
+	EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Started,   this, &AActionPlayerBase::OnIA_Shoot);
+	EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Ongoing,   this, &AActionPlayerBase::OnIA_Shoot);
+	EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Shoot);
+	EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Completed, this, &AActionPlayerBase::OnIA_Shoot);
+	EnhancedInput->BindAction(IA_Shoot,ETriggerEvent::Canceled,  this, &AActionPlayerBase::OnIA_Shoot);
+
+	EnhancedInput->BindAction(IA_Slide,ETriggerEvent::Triggered, this, &AActionPlayerBase::OnIA_Slide);
 }
 
-void AActionPlayerBase::OnIA_Move(const FInputActionInstance& Instance)
+void AActionPlayerBase::ResetMoveInputValue()
 {
-	if (bDead)
-	{
-		return;
-	}
+	UE_LOG( LogPlayerInput,Display, TEXT("Move: Completed"));
+	MoveInputX = 0.f;
+	MoveInputY = 0.f;
+}
 
-	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
-	if (TriggerEvent == ETriggerEvent::None)
-	{
-		if (MoveInputValue != 0.f)
-		{
-			MoveInputValue = 0.f;
-		}
-		return;
-	}
-
-	if (bStop || bSliding) return;
-
+void AActionPlayerBase::OnIA_Move(const FInputActionValue& Value)
+{
 	if (bHurt)
 	{
 		bHurt = false;
 	}
 
-	MoveInputValue = Instance.GetValue().Get<float>();
-	if (MoveInputValue == 0.f)
+	if (OverlappingLadder == nullptr && bClimbingLadder)
 	{
-		UE_LOG( LogPlayerInput,Display, TEXT("Move: Zero") );
+		EndClimbLadder();
+	}
+
+	if (bDead || bStop || bSliding)
+	{
 		return;
 	}
 
-	const bool bRight = MoveInputValue > 0.f;
-	AddMovementInput(FVector::XAxisVector, MoveInputValue);
-	PlayerController->SetControlRotation(FRotator(0.f, (bRight ? 0.f : 180.f), 0.f));
+	const FVector2D Input = Value.Get<FVector2D>();
+	MoveInputX = Input.X;
+	MoveInputY = Input.Y;
 
-	UE_LOG( LogPlayerInput,Display, TEXT("Move: %s"), (bRight?TEXT("Right"):TEXT("Left")) );
+	// Try climbing a ladder if a player isn't climbing when the vertical input value isn't zero.
+	if (OverlappingLadder && !bClimbingLadder && MoveInputY != 0.f)
+	{
+		if (!bDelayingToClimb)
+		{
+			StartClimbLadder();
+		}
+	}
+
+	// Set the horizontal input to the player's control rotation.
+	if (MoveInputX == 0.f)
+	{
+		UE_LOG( LogPlayerInput,Display, TEXT("Move: %s"), (bClimbingLadder ? TEXT("Climbing"):TEXT("Walking")));
+	}
+	else
+	{
+		PlayerController->SetControlRotation(FRotator(0.f, (MoveInputX > 0.f ? 0.f : 180.f), 0.f));
+		UE_LOG( LogPlayerInput,Display, TEXT("Move: %s"), (MoveInputX > 0.f ? TEXT("Look Right"):TEXT("Look Left")) );
+	}
+	
+	// Add a proper movement input for either Climbing or Walking.
+	if (bClimbingLadder)
+	{
+		AddMovementInput(FVector::ZAxisVector, MoveInputY);
+		if (MoveInputY != 0.f)
+		{
+			UE_LOG( LogPlayerInput,Display, TEXT("Move: %s"), (MoveInputY > 0.f ? TEXT("Climbing Up"):TEXT("Climbing Down")) );
+		}
+	}
+	else
+	{
+		AddMovementInput(FVector::XAxisVector, MoveInputX);
+		UE_LOG( LogPlayerInput,Display, TEXT("Move: %s"), (MoveInputX > 0.f ? TEXT("Walking Right"):TEXT("Walking Left")) );
+	}
 }
 
 void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
@@ -525,6 +678,10 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 		if (bSlidingWall)
 		{
 			JumpFromWall();
+		}
+		else if (bClimbingLadder)
+		{
+			JumpFromLadder();
 		}
 
 		if (JumpingSound)
@@ -559,68 +716,44 @@ void AActionPlayerBase::OnIA_Jump(const FInputActionInstance& Instance)
 
 void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 {
-	if (bDead)
+	if (bStop || bDead)
 	{
 		return;
 	}
-	if (bStop) return;
 
-	ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
-	if (TriggerEvent == ETriggerEvent::Completed)
+	const ETriggerEvent TriggerEvent = Instance.GetTriggerEvent();
+
+	static bool bFailedForShooting;
+	if (TriggerEvent == ETriggerEvent::Started)
 	{
-		if (bIsHurtForShooting)
-		{
-			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed, The player is hurt for shooting, so shooting is failed."));
-			return;
-		}
+		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Started"));
 
-		if (bSliding)
-		{
-			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed, The player can't shoot for sliding, so shooting is failed."));
-			if (bCharging)
-			{
-				EndChargeShotEnergy();
-			}
-			EndShoot();
-			return;
-		}
-
-		if (bCharging)
-		{
-			EndChargeShotEnergy();
-
-			const float ElapsedTime = Instance.GetElapsedTime();
-			if (ElapsedTime < FullChargeTime)
-			{
-				UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Half shot)"));
-				Shoot(HalfChargedProjectileClass);
-			}
-			else
-			{
-				UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Full shot)"));
-				Shoot(FullChargedProjectileClass);
-			}
-		}
-		else
-		{
-			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Normal shot)"));
-			Shoot(NormalProjectileClass);
-		}
-	}
-	else if (TriggerEvent == ETriggerEvent::Canceled)
-	{
-		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Canceled"));
-	}
-	else if (TriggerEvent == ETriggerEvent::Triggered)
-	{
-		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Triggered"));
+		bFailedForShooting = false;
+		GetWorldTimerManager().ClearTimer(EndShootTimer);
 	}
 	else if (TriggerEvent == ETriggerEvent::Ongoing)
 	{
-		if (bIsHurtForShooting)
+		if (bFailedForShooting)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing (Failed for shooting)"));
+			return;
+		}
+		
+		if (bHurt)
 		{
 			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing (Hurt for shooting)"));
+			bFailedForShooting = true;
+			EndShoot();
 			return;
+		}
+		
+		if (bClimbingLadder && MoveInputY != 0.f)
+		{
+			bShooting = false;
+		}
+		else
+		{
+			bShooting = true;
 		}
 
 		const float ElapsedTime = Instance.GetElapsedTime();
@@ -636,31 +769,55 @@ void AActionPlayerBase::OnIA_Shoot(const FInputActionInstance& Instance)
 		{
 			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Ongoing (Full charged)"));
 		}
-		
-		if (bCharging)
+
+		if (!bCharging && ElapsedTime >= HalfChargeTime)
 		{
-			return;
-		}
-		
-		if (ElapsedTime >= HalfChargeTime)
-		{
+			bCharging = true;
 			StartChargeShotEnergy();
 		}
 	}
-	else if (TriggerEvent == ETriggerEvent::Started)
+	else if (TriggerEvent == ETriggerEvent::Completed)
 	{
-		UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Started"));
+		if (!bFailedForShooting && bSliding)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed, The player can't shoot for sliding, so shooting is failed."));
+			bFailedForShooting = true;
+		}
 
-		// Start player character shooting animations.
-		bIsHurtForShooting = false;
-		bShooting = true;
-		GetWorldTimerManager().ClearTimer(EndShootTimer);
+		if (bFailedForShooting)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed, The play shooting is failed."));
+			EndShoot();
+			return;
+		}
+
+		TSubclassOf<APlayerProjectileBase> ProjectileClass = NormalProjectileClass;
+		const float ElapsedTime = Instance.GetElapsedTime();
+		if (ElapsedTime > FullChargeTime)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Half shot)"));
+			ProjectileClass = FullChargedProjectileClass;
+		}
+		else if (ElapsedTime > HalfChargeTime)
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Full shot)"));
+			ProjectileClass = HalfChargedProjectileClass;
+		}
+		else
+		{
+			UE_LOG(LogPlayerInput, Display, TEXT("Shoot: Completed (Normal shot)"));
+		}
+		if (bCharging)
+		{
+			EndChargeShotEnergy();
+		}
+		Shoot(ProjectileClass);
 	}
 }
 
 void AActionPlayerBase::OnIA_Slide()
 {
-	if (bDead || !bCanSliding || GetCharacterMovement()->IsFalling())
+	if (bDead || !bCanSliding || bClimbingLadder || GetCharacterMovement()->IsFalling())
 	{
 		return;
 	}
@@ -674,43 +831,4 @@ void AActionPlayerBase::OnIA_Slide()
 	GetWorldTimerManager().SetTimer(EndSlideTimer,    this, &AActionPlayerBase::EndSlide, SlideDuration, false);
 
 	SlideFloor();
-}
-
-void AActionPlayerBase::SlideFloor()
-{
-	// Sliding have a invicible ability for SlideDuration.
-	OnInvinciblized(SlideDuration);
-
-	// Play Sound
-	if (SlidingSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, SlidingSound, GetActorLocation());
-	}
-
-	// Create a root motion source
-	TSharedPtr<FRootMotionSource_ConstantForce> SlidingRootMotionSource = MakeShared<FRootMotionSource_ConstantForce>();
-	SlidingRootMotionSource->InstanceName = FName("SlidingConstantForce");
-	SlidingRootMotionSource->AccumulateMode = ERootMotionAccumulateMode::Override;
-	SlidingRootMotionSource->Priority = 5;
-	SlidingRootMotionSource->Force = GetActorForwardVector() * SlidingForce;
-	SlidingRootMotionSource->Duration = SlideDuration;
-	SlidingRootMotionSource->StrengthOverTime = SlidingStrengthOverTime;
-	SlidingRootMotionSource->FinishVelocityParams.Mode = ERootMotionFinishVelocityMode::SetVelocity;
-	SlidingRootMotionSource->FinishVelocityParams.SetVelocity = FVector::Zero();
-
-	// Apply a Sliding root motion.
-	if (bEnableGravityForSliding)
-	{
-		SlidingRootMotionSource->Settings.SetFlag(ERootMotionSourceSettingsFlags::IgnoreZAccumulate);
-	}
-	GetCharacterMovement()->ApplyRootMotionSource(SlidingRootMotionSource);
-}
-
-void AActionPlayerBase::JumpFromWall()
-{
-	FVector LaunchVelocity = FVector(-WallJumpHorizontalLaunch * MoveInputValue,0.f,WallJumpVerticalLaunch);
-	GetCharacterMovement()->FallingLateralFriction = 0.f;
-	GetWorldTimerManager().SetTimer(WallJumpRestoreFallingLateralFrictionTimer,this,&AActionPlayerBase::RestoreFallingLateralFriction,
-									WallJumpRestoreFallingLateralFrictionTime,false);
-	LaunchCharacter(LaunchVelocity,true,true);
 }

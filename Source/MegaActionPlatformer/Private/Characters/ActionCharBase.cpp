@@ -33,6 +33,7 @@ AActionCharBase::AActionCharBase()
 	CharMovement->SetPlaneConstraintEnabled(true);
 	CharMovement->SetPlaneConstraintAxisSetting(EPlaneConstraintAxisSetting::Y);
 	CharMovement->bUseFlatBaseForFloorChecks = true;
+	CharMovement->PerchRadiusThreshold = 1.f;
 	CharMovement->GravityScale = 5.5f;
 	CharMovement->JumpZVelocity = 600.f;
 	CharMovement->AirControl = 0.7f;
@@ -79,13 +80,11 @@ void AActionCharBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	HPComponent->OnHPBecomeZero.AddDynamic(this, &AActionCharBase::OnStartedDying);
 	bDead = HPComponent->IsZero();
+	HPComponent->OnHPBecomeZero.AddDynamic(this, &AActionCharBase::OnStartedDying);
 
 	SpriteMaterialDynamic = GetSprite()->CreateDynamicMaterialInstance(0);
 	check(SpriteMaterialDynamic);
-
-	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AActionCharBase::OnCapsuleBeginOverlap);
 
 	InitialFallingLateralFriction = GetCharacterMovement()->FallingLateralFriction;
 }
@@ -102,20 +101,16 @@ void AActionCharBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 float AActionCharBase::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	// do not modify damage parameters after this
+	// Do not modify damage parameters after this.
 	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
 	if (ActualDamage > 0.f)
 	{
 		AActor* DamageInstigator = DamageCauser ? DamageCauser->GetInstigator() : nullptr;
 		HPComponent->Injure(Damage, DamageInstigator);
-		FlashComponent->PlayFlashFromStart(HitFlashName);
+		
 		OnInvinciblized(DamagedInvisibleTime);
-
-		if (HitSound)
-		{
-			UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
-		}
+		OnHurt();
 	}
 
 	return ActualDamage;
@@ -134,6 +129,8 @@ void AActionCharBase::OnStartedDying(AActor* Causer)
 {
 	bDead = true;
 
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	if (DyingTime > 0.f)
 	{
 		GetWorldTimerManager().SetTimer(DyingTimer, this, &ThisClass::OnFinishedDying, DyingTime, false);
@@ -149,6 +146,26 @@ void AActionCharBase::OnFinishedDying()
 	Destroy();
 }
 
+void AActionCharBase::OnHurt()
+{
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	}
+
+	if (HurtTime > 0.f)
+	{
+		bHurt = true;
+		if (UPaperZDAnimInstance* PaperAnimInstance = GetAnimInstance())
+		{
+			PaperAnimInstance->JumpToNode(TEXT("JumpHurt"));
+		}
+		GetWorldTimerManager().SetTimer(FinishHurtTimer, this, &AActionCharBase::FinishHurt, HurtTime, false);
+	}
+
+	FlashComponent->PlayFlashFromStart(HitFlashName);
+}
+
 void AActionCharBase::FinishStop()
 {
 	RestoreFallingLateralFriction();
@@ -162,12 +179,8 @@ void AActionCharBase::FinishHurt()
 
 void AActionCharBase::FinishInvincible()
 {
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	bInvincible = false;
-}
-
-void AActionCharBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
-{
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 }
 
 void AActionCharBase::OnKnockbacked(float KnockbackTime)
@@ -178,24 +191,14 @@ void AActionCharBase::OnKnockbacked(float KnockbackTime)
 		GetCharacterMovement()->FallingLateralFriction = 0.f;
 		GetWorldTimerManager().SetTimer(FinishStopTimer, this, &AActionCharBase::FinishStop, KnockbackTime, false);
 	}
-
-	if (HurtTime > 0.f)
-	{
-		bHurt = true;
-		if (UPaperZDAnimInstance* PaperAnimInstance = GetAnimInstance())
-		{
-			PaperAnimInstance->JumpToNode(TEXT("JumpHurt"));
-		}
-		GetWorldTimerManager().SetTimer(FinishHurtTimer, this, &AActionCharBase::FinishHurt, HurtTime, false);
-	}
 }
 
 void AActionCharBase::OnInvinciblized(float InInvisibleTime)
 {
 	if (InInvisibleTime > 0.f)
 	{
-		GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 		bInvincible = true;
+		GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 		GetWorldTimerManager().SetTimer(FinishInvincibleTimer, this, &AActionCharBase::FinishInvincible, InInvisibleTime, false);
 	}
 }

@@ -3,6 +3,7 @@
 
 #include "Characters/ActionEnemyBase.h"
 #include "Characters/ActionPlayerBase.h"
+#include "Components/CapsuleComponent.h"
 #include "Factions/ActionFactionComponent.h"
 #include "Combat/HPComponent.h"
 #include "Combat/DamageComponent.h"
@@ -23,6 +24,8 @@ AActionEnemyBase::AActionEnemyBase()
 void AActionEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AActionEnemyBase::OnPlayerTouched);
 }
 
 void AActionEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -30,10 +33,8 @@ void AActionEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AActionEnemyBase::OnCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
+void AActionEnemyBase::OnPlayerTouched_Implementation(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult)
 {
-	Super::OnCapsuleBeginOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-
 	if (AActionPlayerBase* PlayerChar = Cast<AActionPlayerBase>(OtherActor))
 	{
 		TouchDamageComponent->ApplyDamage(*PlayerChar);
