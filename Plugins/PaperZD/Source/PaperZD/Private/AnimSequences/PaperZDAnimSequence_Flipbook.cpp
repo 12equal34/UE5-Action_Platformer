@@ -3,6 +3,10 @@
 #include "AnimSequences/PaperZDAnimSequence_Flipbook.h"
 #include "PaperZDCustomVersion.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimSequence_Flipbook)
+#endif
+
 void UPaperZDAnimSequence_Flipbook::PostLoad()
 {
 	Super::PostLoad();

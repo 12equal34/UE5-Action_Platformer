@@ -6,7 +6,10 @@
 #include "Templates/SharedPointer.h"
 #include "Editors/Util/PaperZDEditorDelegates.h"
 #include "ITimeSlider.h"
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 3
 #include "AnimatedRange.h"
+#endif
 
 class UPaperZDAnimSequence;
 class FPaperZDAnimationSourceViewportClient;

@@ -51,7 +51,7 @@ protected:
  
  private:
 	/* AnimSequence currently being represented by this model. */
-	UPaperZDAnimSequence* AnimSequence;
+	TObjectPtr<UPaperZDAnimSequence> AnimSequence;
 
 	/** Root track for notifies */
 	TSharedPtr<FPaperZDAnimTimelineTrack_Notifies> NotifyRoot;

@@ -2,6 +2,10 @@
 
 #include "AnimNodes/PaperZDAnimNode_SelectByInt.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_SelectByInt)
+#endif
+
 FPaperZDAnimNode_SelectByInt::FPaperZDAnimNode_SelectByInt()
 	: SelectValue(0)
 	, bUpdateInactiveAnimations(false)

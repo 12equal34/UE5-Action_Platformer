@@ -5,6 +5,10 @@
 #include "Components/PrimitiveComponent.h"
 #include "PaperZDCustomVersion.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimationComponent)
+#endif
+
 // Sets default values for this component's properties
 UPaperZDAnimationComponent::UPaperZDAnimationComponent()
 	: AnimInstanceClass(nullptr)
@@ -78,7 +82,7 @@ UPaperZDAnimInstance* UPaperZDAnimationComponent::GetSequencerAnimInstance()
 
 UPaperZDAnimInstance* UPaperZDAnimationComponent::GetOrCreateAnimInstance()
 {
-	if (!AnimInstance)
+	if (!AnimInstance || !AnimInstance->GetPlayer())
 	{
 		CreateAnimInstance();
 	}

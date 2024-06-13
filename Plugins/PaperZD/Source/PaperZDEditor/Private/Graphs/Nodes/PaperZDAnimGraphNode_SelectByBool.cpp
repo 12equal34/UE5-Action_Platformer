@@ -3,6 +3,10 @@
 #include "Graphs/Nodes/PaperZDAnimGraphNode_SelectByBool.h"
 #include "Kismet2/CompilerResultsLog.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_SelectByBool)
+#endif
+
 UPaperZDAnimGraphNode_SelectByBool::UPaperZDAnimGraphNode_SelectByBool()
 	: Super()
 {}

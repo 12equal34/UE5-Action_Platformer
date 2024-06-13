@@ -5,6 +5,10 @@
 #include "Slate/SPaperZDStateGraphNode_Conduit.h"
 #include "EdGraph/EdGraph.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDStateGraphNode_Conduit)
+#endif
+
 UPaperZDStateGraphNode_Conduit::UPaperZDStateGraphNode_Conduit(const FObjectInitializer& ObjectInitializer)
 	: Super()
 {

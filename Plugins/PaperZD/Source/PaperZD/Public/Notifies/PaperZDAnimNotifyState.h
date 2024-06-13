@@ -19,14 +19,18 @@ public:
 	float Duration;
 
 	//Called each Tick to process the notify and trigger it when necessary
-	virtual void TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, class UPrimitiveComponent* AnimRenderComponent, UPaperZDAnimInstance* OwningInstance = nullptr) override;
+	virtual void TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, bool& bPersistentActiveState, UPaperZDAnimInstance* OwningInstance = nullptr) const override;
 
 	UFUNCTION(BlueprintNativeEvent, Category="PaperZD")
-	void OnNotifyBegin(UPaperZDAnimInstance* OwningInstance);
+	void OnNotifyBegin(UPaperZDAnimInstance* OwningInstance) const;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "PaperZD")
-	void OnNotifyTick(float DeltaTime, UPaperZDAnimInstance* OwningInstance);
+	void OnNotifyTick(float DeltaTime, UPaperZDAnimInstance* OwningInstance) const;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "PaperZD")
-	void OnNotifyEnd(UPaperZDAnimInstance* OwningInstance);
+	void OnNotifyEnd(UPaperZDAnimInstance* OwningInstance) const;
+
+protected:
+	/* Called when the notify state gets aborted before it ends naturally. */
+	virtual void OnNotifyAborted(UPaperZDAnimInstance* OwningInstance) const override;
 };

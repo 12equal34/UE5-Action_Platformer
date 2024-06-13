@@ -149,7 +149,7 @@ private:
 	void GetCompatibleAnimBPs(TArray<struct FAssetData>& OutAssets) const;
 
 	/** The animation source we are currently editing */
-	UPaperZDAnimationSource* AnimationSource;
+	TObjectPtr<UPaperZDAnimationSource> AnimationSource;
 
 	/** SSearchBox to filter the notify list */
 	TSharedPtr<SSearchBox>	NameFilterBox;

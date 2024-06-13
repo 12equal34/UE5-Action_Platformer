@@ -3,6 +3,10 @@
 #include "Graphs/Nodes/PaperZDStateGraphNode_Root.h"
 #include "Graphs/Nodes/Slate/SPaperZDStateGraphNode_Root.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDStateGraphNode_Root)
+#endif
+
 UPaperZDStateGraphNode_Root::UPaperZDStateGraphNode_Root(const FObjectInitializer& ObjectInitializer)
 	: Super()
 {

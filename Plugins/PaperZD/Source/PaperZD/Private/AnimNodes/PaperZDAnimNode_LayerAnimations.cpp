@@ -2,6 +2,10 @@
 
 #include "AnimNodes/PaperZDAnimNode_LayerAnimations.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_LayerAnimations)
+#endif
+
 FPaperZDAnimNode_LayerAnimations::FPaperZDAnimNode_LayerAnimations()
 {
 	AnimationLayer.AddDefaulted(2);

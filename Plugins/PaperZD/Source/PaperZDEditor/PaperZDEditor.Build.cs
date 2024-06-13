@@ -106,5 +106,11 @@ public class PaperZDEditor : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
-	}
+
+#if UE_5_1_OR_LATER
+        PrivateDefinitions.Add("ZD_VERSION_INLINED_CPP_SUPPORT=1");
+#else
+		PrivateDefinitions.Add("ZD_VERSION_INLINED_CPP_SUPPORT=0");
+#endif
+    }
 }

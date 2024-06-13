@@ -13,6 +13,11 @@
 #include "Misc/FeedbackContext.h"
 #include "Editor.h"
 #include "AnimSequences/Sources/PaperZDAnimationSource_Flipbook.h"
+
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimSequenceFactory)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDAnimSequenceFactory_Flipbook"
 
 //////////////////////////////////////////////////////////////////////////

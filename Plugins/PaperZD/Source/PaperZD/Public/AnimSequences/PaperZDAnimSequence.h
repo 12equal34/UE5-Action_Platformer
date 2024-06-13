@@ -82,11 +82,11 @@ private:
 
 	/* Animation source that owns this sequence. */
 	UPROPERTY(VisibleAnywhere, AssetRegistrySearchable, Category = Animation)
-	UPaperZDAnimationSource* AnimSource;
+	TObjectPtr<UPaperZDAnimationSource> AnimSource;
 	
 	/* The list of the AnimNotifies linked to this animation. */
 	UPROPERTY()
-	TArray<UPaperZDAnimNotify_Base*> AnimNotifies;
+	TArray<TObjectPtr<UPaperZDAnimNotify_Base>> AnimNotifies;
 
 #if WITH_EDITORONLY_DATA
 	/* DEPRECATED: Points to the AnimBP that owned this AnimSequence before the creation of AnimSources. */

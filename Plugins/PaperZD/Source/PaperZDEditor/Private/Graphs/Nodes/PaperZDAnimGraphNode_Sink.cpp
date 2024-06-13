@@ -3,6 +3,10 @@
 #include "Graphs/Nodes/PaperZDAnimGraphNode_Sink.h"
 #include "Editors/Util/PaperZDEditorSettings.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_Sink)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNodes"
 
 UPaperZDAnimGraphNode_Sink::UPaperZDAnimGraphNode_Sink()

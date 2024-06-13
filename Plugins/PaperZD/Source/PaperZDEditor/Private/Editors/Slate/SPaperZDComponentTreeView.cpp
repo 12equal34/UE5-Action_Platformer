@@ -169,7 +169,7 @@ void FPaperZDComponentTreeItem::OnAddedAsChild(FPaperZDComponentTreeItemRef InPa
 /** Default metrics for the component tree view, copied from the outliner defaults to have a similar style. */
 struct FDefaultViewMetrics
 {
-	static int32	RowHeight() { return 20; };
+	static int32	RowHeight() { return 22; };
 	static int32	IconSize() { return 16; };
 	static FMargin	IconPadding() { return FMargin(0.f, 1.f, 6.f, 1.f); };
 	static FLinearColor InactiveColor() { return FLinearColor(0.15f, 0.15f, 0.15f); }

@@ -20,7 +20,7 @@ class UPaperZDStateMachineGraph : public UEdGraph
 public:
 	/* The owning AnimGraphNode that created this state machine graph. */
 	UPROPERTY()
-	UPaperZDAnimGraphNode_StateMachine* OwnerAnimGraphNode;
+	TObjectPtr<UPaperZDAnimGraphNode_StateMachine> OwnerAnimGraphNode;
 
 public:
 	UPaperZDStateMachineGraph();

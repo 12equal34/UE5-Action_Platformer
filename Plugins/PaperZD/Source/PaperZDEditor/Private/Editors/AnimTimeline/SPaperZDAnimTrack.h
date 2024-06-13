@@ -7,6 +7,10 @@
 #include "Widgets/SCompoundWidget.h"
 #include "ITimeSlider.h"
 
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 3
+#include "AnimatedRange.h"
+#endif
+
 //class FPaintArgs;
 //class FSlateWindowElementList;
 class SPaperZDAnimOutliner;

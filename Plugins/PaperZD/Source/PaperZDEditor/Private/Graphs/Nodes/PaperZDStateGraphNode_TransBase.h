@@ -20,7 +20,7 @@ private:
 
 	/* The graph that contains the transition rules to evaluate. */
 	UPROPERTY()
-	UEdGraph* BoundGraph;
+	TObjectPtr<UEdGraph> BoundGraph;
 
 public:
 	//~ Begin UEdGraphNode Interface

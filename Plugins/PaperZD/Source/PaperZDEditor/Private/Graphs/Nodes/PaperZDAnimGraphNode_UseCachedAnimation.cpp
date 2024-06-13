@@ -10,6 +10,10 @@
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_UseCachedAnimation)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNodes"
 
 UPaperZDAnimGraphNode_UseCachedAnimation::UPaperZDAnimGraphNode_UseCachedAnimation()

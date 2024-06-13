@@ -2,15 +2,19 @@
 
 #include "Notifies/PaperZDAnimNotify.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNotify)
+#endif
+
 UPaperZDAnimNotify::UPaperZDAnimNotify(const FObjectInitializer& ObjectInitializer)
 	: Super()
 {
 }
 
-void UPaperZDAnimNotify::TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, UPaperZDAnimInstance* OwningInstance /* = nullptr*/)
+void UPaperZDAnimNotify::TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, bool& bPersistentActiveState, UPaperZDAnimInstance* OwningInstance /* = nullptr */) const
 {
 	//Super takes care of setting world context object
-	Super::TickNotify(DeltaTime, Playtime, LastPlaybackTime, AnimRenderComponent, OwningInstance);
+	Super::TickNotify(DeltaTime, Playtime, LastPlaybackTime, AnimRenderComponent, bPersistentActiveState, OwningInstance);
 
 	//Normal Notifies tick only once, look for the time
 	if (DeltaTime > 0.0f)
@@ -39,7 +43,7 @@ void UPaperZDAnimNotify::TickNotify(float DeltaTime, float Playtime, float LastP
 	}
 }
 
-void UPaperZDAnimNotify::OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance /* = nullptr*/)
+void UPaperZDAnimNotify::OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance /* = nullptr*/) const
 {
 	//Empty implementation
 }

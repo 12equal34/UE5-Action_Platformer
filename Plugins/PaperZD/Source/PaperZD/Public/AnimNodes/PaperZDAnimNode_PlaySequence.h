@@ -16,7 +16,7 @@ struct PAPERZD_API FPaperZDAnimNode_PlaySequence : public FPaperZDAnimNode_Base
 
 	/* Resulting Animation Data. */
 	UPROPERTY(EditAnywhere, Category = "Settings", meta = (HidePinByDefault))
-	UPaperZDAnimSequence* AnimSequence;
+	TObjectPtr<UPaperZDAnimSequence> AnimSequence;
 
 	/* The PlayRate multiplier against the normal speed of the AnimSequence. Can be negative, which will result on the animation going in reverse. */
 	UPROPERTY(EditAnywhere, Category = "Settings", meta = (HidePinByDefault))

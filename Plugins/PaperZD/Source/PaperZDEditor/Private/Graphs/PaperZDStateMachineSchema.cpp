@@ -18,6 +18,10 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDStateMachineSchema)
+#endif
+
 
 #define LOCTEXT_NAMESPACE "PaperZDStateMachineSchema"
 

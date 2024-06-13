@@ -49,7 +49,7 @@ class PAPERZD_API UPaperZDAnimBPGeneratedClass : public UBlueprintGeneratedClass
 
 	/* The animation source that the class has been compiled to support. */
 	UPROPERTY()
-	UPaperZDAnimationSource* SupportedAnimationSource;
+	TObjectPtr<UPaperZDAnimationSource> SupportedAnimationSource;
 
 	/* List of the exposed value handlers. */
 	UPROPERTY()

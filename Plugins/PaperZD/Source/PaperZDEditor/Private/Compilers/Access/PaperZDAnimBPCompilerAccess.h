@@ -41,13 +41,6 @@ public:
 		}
 	}
 
-	/* Creates an intermediate event node. */
-	template <typename T>
-	T* SpawnIntermediateEventNode(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin = nullptr, UEdGraph* ParentGraph = nullptr)
-	{
-		return CompilerContext->SpawnIntermediateEventNode<T>(SourceNode, SourcePin, ParentGraph);
-	}
-
 	/* Spawns an intermediate node associated with the source node (for error purposes) */
 	template <typename NodeType>
 	NodeType* SpawnIntermediateNode(UEdGraphNode* SourceNode, UEdGraph* ParentGraph = nullptr)

@@ -2,6 +2,10 @@
 
 #include "AnimNodes/PaperZDAnimNode_SetDirectionality.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_SetDirectionality)
+#endif
+
 FPaperZDAnimNode_SetDirectionality::FPaperZDAnimNode_SetDirectionality()
 	: Input(FVector2D::ZeroVector)
 	, CachedDirectionalAngle(0.0f)

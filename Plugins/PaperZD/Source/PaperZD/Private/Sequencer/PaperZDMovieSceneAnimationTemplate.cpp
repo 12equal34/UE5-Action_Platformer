@@ -9,6 +9,10 @@
 #include "IMovieScenePlayer.h"
 #include "Engine/World.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDMovieSceneAnimationTemplate)
+#endif
+
 namespace FPaperZDMovieSceneHelpers
 {
 	bool ShouldUsePreviewPlayback(IMovieScenePlayer& Player, UObject& RuntimeObject)
@@ -77,11 +81,12 @@ namespace ZD
 	//Parameters to be passed to the actuator
 	struct FMinimalAnimParameters
 	{
-		FMinimalAnimParameters(UPaperZDAnimSequence* InSequence, float InPreviousEvalTime, float InEvalTime, float InWeight, uint32 InSectionId)
+		FMinimalAnimParameters(UPaperZDAnimSequence* InSequence, float InPreviousEvalTime, float InEvalTime, float InWeight, FName InSlotName, uint32 InSectionId)
 			: SequencePtr(InSequence)
 			, PreviousEvalTime(InPreviousEvalTime)
 			, EvalTime(InEvalTime)
 			, Weight(InWeight)
+			, SlotName(InSlotName)
 			, SectionId(InSectionId)
 		{}
 
@@ -89,6 +94,7 @@ namespace ZD
 		float PreviousEvalTime;
 		float EvalTime;
 		float Weight;
+		FName SlotName;
 		uint32 SectionId;
 	};
 
@@ -148,23 +154,35 @@ namespace ZD
 
 				// If the playback status is jumping, ie. one such occurrence is setting the time for thumbnail generation, disable anim notifies updates because it could fire audio
  				const bool bFireNotifies = !bPreviewPlayback || (PlayerStatus != EMovieScenePlayerStatus::Jumping && PlayerStatus != EMovieScenePlayerStatus::Stopped);
-				AnimInstance->GetPlayer()->SetIsPreviewPlayer(bPreviewPlayback);
 				
 				//Start collecting the animations into the final playback data structure
-				FPaperZDAnimationPlaybackData PlaybackData;
+				TMap<FName, FPaperZDAnimationPlaybackData> PlaybackDataMap;
 				for (const FMinimalAnimParameters& Params : InFinalValue.Animations)
 				{
 					//Process the notifies if needed
 					if (bFireNotifies)
 					{
-						AnimInstance->GetPlayer()->ProcessAnimSequenceNotifies(Params.SequencePtr.Get(), Params.PreviousEvalTime, Params.EvalTime, Params.Weight, AnimInstance); 
+						const float DeltaTime = Params.EvalTime - Params.PreviousEvalTime;
+						AnimInstance->GetPlayer()->ProcessAnimSequenceNotifies(Params.SequencePtr.Get(), DeltaTime, Params.EvalTime, Params.PreviousEvalTime, Params.Weight, AnimInstance);
 					}
 
+					//Obtain the playback handle for the slot
+					FPaperZDAnimationPlaybackData& PlaybackData = PlaybackDataMap.FindOrAdd(Params.SlotName);
 					PlaybackData.AddAnimation(Params.SequencePtr.Get(), Params.EvalTime, Params.Weight);
 				}
 
-				//Request the player to play the animations. The logic of how to render is inside the handles
-				AnimInstance->GetPlayer()->Play(PlaybackData);
+				//Now that we have all the animation pertaining to each slot, apply to the AnimInstance
+				//we want Sequencer animations to have more priority than any AnimationOverride the user might have triggered so we will override them if needed
+				for (TPair<FName, FPaperZDAnimationPlaybackData> KVPair : PlaybackDataMap)
+				{
+					AnimInstance->SetAnimationOverrideDataBySlot(KVPair.Key, KVPair.Value, true);
+				}
+
+				//If we're on a preview playback, we need to force the animation blueprint to do a 'virtual tick' so we can process the animations and render them correctly
+				if (bPreviewPlayback)
+				{
+					AnimInstance->UpdateSequencerPreview();
+				}
 			}
 		}
 	};
@@ -207,7 +225,7 @@ void FPaperZDMovieSceneAnimationTemplate::Evaluate(const FMovieSceneEvaluationOp
 		
 	// Create the execution token with the minimal AnimParams
 	ZD::FMinimalAnimParameters AnimParams(
-		Params.Animation, PreviousEvalTime, EvalTime, GetTypeHash(PersistentData.GetSectionKey()), Weight
+		Params.Animation, PreviousEvalTime, EvalTime, Weight, Params.SlotName, GetTypeHash(PersistentData.GetSectionKey())
 	);
 
 	FOptionalMovieSceneBlendType BlendType = GetSourceSection()->GetBlendType();

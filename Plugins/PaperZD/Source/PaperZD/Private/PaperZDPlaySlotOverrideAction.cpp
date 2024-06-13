@@ -5,6 +5,10 @@
 #include "AnimSequences/PaperZDAnimSequence.h"
 #include "UObject/Stack.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDPlaySlotOverrideAction)
+#endif
+
 UPaperZDPlaySlotOverrideAction* UPaperZDPlaySlotOverrideAction::PlayAnimationOverrideWithCallbacks(UPaperZDAnimInstance* AnimInstance, const UPaperZDAnimSequence* AnimSequence, UObject* WorldContextObject, FName SlotName, float PlayRate, float StartingPosition)
 {
 	UPaperZDPlaySlotOverrideAction* Node = NewObject<UPaperZDPlaySlotOverrideAction>();

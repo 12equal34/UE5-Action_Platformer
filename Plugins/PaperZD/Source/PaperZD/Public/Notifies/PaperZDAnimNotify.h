@@ -11,9 +11,8 @@ class PAPERZD_API UPaperZDAnimNotify : public UPaperZDAnimNotify_Base
 
 public:
 	//Called each Tick to process the notify and trigger it when necessary
-	virtual void TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, class UPrimitiveComponent* AnimRenderComponent, UPaperZDAnimInstance* OwningInstance = nullptr) override;
+	virtual void TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, bool& bPersistentActiveState, UPaperZDAnimInstance* OwningInstance = nullptr) const override;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "PaperZD")
-	void OnReceiveNotify(UPaperZDAnimInstance* OwningInstance = nullptr);
-	
+	void OnReceiveNotify(UPaperZDAnimInstance* OwningInstance = nullptr) const;	
 };

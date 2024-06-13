@@ -4,6 +4,10 @@
 #include "Graphs/PaperZDAnimGraphSchema_Transitional.h"
 #include "PaperZDAnimBP.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraph)
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //// PaperZD Anim Graph
 //////////////////////////////////////////////////////////////////////////

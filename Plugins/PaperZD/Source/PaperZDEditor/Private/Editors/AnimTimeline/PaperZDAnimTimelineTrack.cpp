@@ -8,6 +8,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SComboButton.h"
 #include "Styling/AppStyle.h"
 #include "Widgets/SOverlay.h"
 #include "Preferences/PersonaOptions.h"

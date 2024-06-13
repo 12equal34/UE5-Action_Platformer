@@ -8,6 +8,7 @@
 #include "Editors/PaperZDAnimationSourceEditor.h" 
 #include "AnimSequences/Sources/PaperZDAnimationSource.h"
 #include "SSingleObjectDetailsPanel.h"
+#include "PropertyEditorModule.h"
 #include "Styling/AppStyle.h"
 
 #define LOCTEXT_NAMESPACE "PaperZDAnimationTabs"

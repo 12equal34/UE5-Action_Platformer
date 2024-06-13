@@ -5,9 +5,12 @@
 #include "Input/CursorReply.h"
 #include "Input/Reply.h"
 #include "Widgets/SWidget.h"
-#include "ITimeSlider.h"
-#include "TimeSliderArgs.h"
 #include "Editors/AnimTimeline/SPaperZDAnimTimeline.h"
+#include "ITimeSlider.h"
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 3
+#include "TimeSliderArgs.h"
+#endif
 
 class FPaperZDAnimModel;
 class FSlateWindowElementList;

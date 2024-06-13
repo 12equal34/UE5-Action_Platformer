@@ -5,6 +5,10 @@
  #include "Compilers/Access/PaperZDAnimBPGeneratedClassAccess.h"
  #include "Kismet2/CompilerResultsLog.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_OverrideSlot)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNodes"
 
 UPaperZDAnimGraphNode_OverrideSlot::UPaperZDAnimGraphNode_OverrideSlot()

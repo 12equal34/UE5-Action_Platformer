@@ -9,6 +9,10 @@
 #include "AnimSequences/PaperZDAnimSequence.h"
 #include "MovieScene.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDMovieSceneAnimationTrack)
+#endif
+
 #define LOCTEXT_NAMESPACE "PaperZDMovieSceneAnimationTrack"
 
 UPaperZDMovieSceneAnimationTrack::UPaperZDMovieSceneAnimationTrack(const FObjectInitializer& ObjectInitializer)

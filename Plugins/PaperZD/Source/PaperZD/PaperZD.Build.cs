@@ -41,7 +41,8 @@ public class PaperZD : ModuleRules
 			{
 				"Core",
                 "CoreUObject",
-                "Paper2D"
+                "Paper2D",
+				"Niagara"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -67,5 +68,11 @@ public class PaperZD : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
+
+#if UE_5_1_OR_LATER
+		PrivateDefinitions.Add("ZD_VERSION_INLINED_CPP_SUPPORT=1");
+#else
+		PrivateDefinitions.Add("ZD_VERSION_INLINED_CPP_SUPPORT=0");
+#endif
 	}
 }

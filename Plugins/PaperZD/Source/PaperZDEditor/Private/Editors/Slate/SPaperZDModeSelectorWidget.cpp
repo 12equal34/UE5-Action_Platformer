@@ -3,6 +3,7 @@
 #include "Editors/Slate/SPaperZDModeSelectorWidget.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SComboButton.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Editors/Util/PaperZDEditorStyle.h"
@@ -10,7 +11,7 @@
 #include "AnimSequences/Sources/PaperZDAnimationSource.h"
 #include "PaperZDAnimBP.h"
 #include "Editor.h"
-
+#include "Framework/Application/SlateApplication.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "IContentBrowserSingleton.h"

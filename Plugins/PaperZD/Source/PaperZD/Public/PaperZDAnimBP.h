@@ -20,11 +20,11 @@ class PAPERZD_API UPaperZDAnimBP : public UBlueprint
 public:
 	/* The animation graph. */
 	UPROPERTY()
-	class UEdGraph* AnimationGraph = nullptr;
+	TObjectPtr<class UEdGraph> AnimationGraph = nullptr;
 
 	/* Animation source that we're implementing. */
 	UPROPERTY(AssetRegistrySearchable, VisibleDefaultsOnly, Category = "PaperZD")
-	UPaperZDAnimationSource* SupportedAnimationSource = nullptr;
+	TObjectPtr<UPaperZDAnimationSource> SupportedAnimationSource = nullptr;
 	
 private:
 	/* Names of the registered notifies. */

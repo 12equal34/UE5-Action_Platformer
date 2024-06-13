@@ -20,11 +20,11 @@ class PAPERZD_API UPaperZDAnimSequence_Flipbook : public UPaperZDAnimSequence
 
 	//@DEPRECATED: In favor of the animation data source which now can support multi-directional flipbooks.
 	UPROPERTY()
-	UPaperFlipbook* Flipbook_DEPRECATED;
+	TObjectPtr<UPaperFlipbook> Flipbook_DEPRECATED;
 	
 	/* Contains the render information for displaying the flipbook, multi-directional. */
 	UPROPERTY(EditAnywhere, Category = "AnimSequence")
-	TArray<UPaperFlipbook*> AnimDataSource;
+	TArray<TObjectPtr<UPaperFlipbook>> AnimDataSource;
 	
 public:
 

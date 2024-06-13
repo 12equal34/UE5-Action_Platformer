@@ -2,6 +2,10 @@
 
 #include "AnimNodes/PaperZDAnimNode_SelectByBool.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_SelectByBool)
+#endif
+
 FPaperZDAnimNode_SelectByBool::FPaperZDAnimNode_SelectByBool()
 	: bSelectValue(false)
 	, bUpdateInactiveAnimation(false)

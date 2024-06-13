@@ -10,6 +10,10 @@
 #include "Kismet2/SClassPickerDialog.h"
 #include "UObject/UObjectIterator.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimationSourceFactory)
+#endif
+
 #define LOCTEXT_NAMESPACE "PaperZDAnimationSourceFactory"
 
 //////////////////////////////////////////////////////////////////////////

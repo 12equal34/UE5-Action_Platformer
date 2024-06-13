@@ -6,6 +6,10 @@
 #include "ScopedTransaction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_SelectByInt)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNodes"
 
 UPaperZDAnimGraphNode_SelectByInt::UPaperZDAnimGraphNode_SelectByInt()

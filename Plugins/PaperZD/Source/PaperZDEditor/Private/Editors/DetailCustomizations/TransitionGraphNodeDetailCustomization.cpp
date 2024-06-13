@@ -68,8 +68,6 @@ class STransitionalAnimGraphWidget : public SCompoundWidget
 		{
 			return bValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
-
-		return ECheckBoxState::Unchecked;
 	}
 
 	/* Returns if the OpenAnimGraph button should be interactable. */

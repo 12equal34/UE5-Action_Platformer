@@ -24,7 +24,7 @@ class UPaperZDAnimGraphNode_StateMachine : public UPaperZDAnimGraphNode_Base
 
 	/* State machine graph. */
 	UPROPERTY()
-	UPaperZDStateMachineGraph* StateMachineGraph;
+	TObjectPtr<UPaperZDStateMachineGraph> StateMachineGraph;
 
 	/* Cached name of the state machine. */
 	FNodeTextCache CachedFullTitle;

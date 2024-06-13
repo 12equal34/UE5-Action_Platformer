@@ -6,6 +6,10 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "Kismet2/Kismet2NameValidators.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_CacheAnimation)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNodes"
 
 /////////////////////////////////////////////////////

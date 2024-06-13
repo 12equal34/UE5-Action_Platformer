@@ -4,12 +4,16 @@
 #include "PaperZDAnimInstance.h"
 #include "PaperZDAnimBPGeneratedClass.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNotifyCustom)
+#endif
+
 UPaperZDAnimNotifyCustom::UPaperZDAnimNotifyCustom(const FObjectInitializer& ObjectInitializer)
 	: Super()
 {
 }
 
-void UPaperZDAnimNotifyCustom::OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance /* = nullptr*/)
+void UPaperZDAnimNotifyCustom::OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance /* = nullptr*/) const
 {
 	//Owning instance can be null on editor
 	if (OwningInstance)

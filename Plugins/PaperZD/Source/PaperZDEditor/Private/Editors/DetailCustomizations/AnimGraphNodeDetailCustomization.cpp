@@ -6,7 +6,8 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
 #include "ObjectEditorUtils.h"
-#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SCheckBox.h" 	
+#include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "PaperZDAnimGraphNodeDetailCustomization"
 
@@ -115,8 +116,6 @@ class SShowAsWidget : public SCompoundWidget
 		{
 			return bValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
-
-		return ECheckBoxState::Unchecked;
 	}
 
 	void OnCheckStateChanged(ECheckBoxState InCheckBoxState)

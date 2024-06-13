@@ -51,7 +51,7 @@ private:
 
 private:	
 	//Arguments
-	UPaperZDAnimBP*				DefaultAnimBP;
-	UPaperZDAnimationSource*	AnimationSource;
-	bool						bSourceSelected;
+	TObjectPtr<UPaperZDAnimBP>				DefaultAnimBP;
+	TObjectPtr<UPaperZDAnimationSource>		AnimationSource;
+	bool									bSourceSelected;
 };

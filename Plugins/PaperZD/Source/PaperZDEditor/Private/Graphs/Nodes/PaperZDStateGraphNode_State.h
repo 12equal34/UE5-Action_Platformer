@@ -19,7 +19,7 @@ class UPaperZDStateGraphNode_State : public UPaperZDStateGraphNode
 private:
 	/* The internal animation graph for this state. */
 	UPROPERTY()
-	UEdGraph* BoundGraph;
+	TObjectPtr<UEdGraph> BoundGraph;
 
 public:
 

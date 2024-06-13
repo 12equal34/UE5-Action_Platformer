@@ -2,6 +2,10 @@
 
 #include "Notifies/PaperZDAnimNotifyState.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNotifyState)
+#endif
+
 //static defines
 const float UPaperZDAnimNotifyState::MinimumStateDuration = (1.0f / 30.0f);
 
@@ -12,10 +16,10 @@ UPaperZDAnimNotifyState::UPaperZDAnimNotifyState(const FObjectInitializer& Objec
 	Duration = MinimumStateDuration;
 }
 
-void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, UPaperZDAnimInstance* OwningInstance /* = nullptr*/)
+void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, bool& bPersistentActiveState, UPaperZDAnimInstance* OwningInstance /* = nullptr */) const
 {
 	//Super takes care of setting world context, etc
-	Super::TickNotify(DeltaTime, Playtime, LastPlaybackTime, AnimRenderComponent, OwningInstance);
+	Super::TickNotify(DeltaTime, Playtime, LastPlaybackTime, AnimRenderComponent, bPersistentActiveState, OwningInstance);
 
 	//We'll work on the notify by pieces, shaving off delta time to account for edge cases like looping and edge markers being on the start/end frames
 	float RemainingDeltaTime = DeltaTime;
@@ -25,7 +29,7 @@ void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float 
 	{
 		//First figure out if this notify was active last frame, if so we need to tick it first
 		const float EndTime = Time + Duration;
-		const bool bWasActive = LastPlaybackTime > Time && LastPlaybackTime < EndTime;
+		const bool bWasActive = bPersistentActiveState;
 		if (bWasActive)
 		{
 			const float TickTime = FMath::Min(RemainingDeltaTime, EndTime - LastPlaybackTime);
@@ -45,6 +49,7 @@ void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float 
 		if (bWasActive)
 		{
 			OnNotifyEnd(OwningInstance);
+			bPersistentActiveState = false;
 		}
 
 		//At this point, we know for sure we at least we are out of the notify play-range.
@@ -63,6 +68,9 @@ void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float 
 			//Shave off the time, any remaining time will be ignored
 			RemainingDeltaTime -= TickTime;
 
+			//Ask the persistent storage to remember that we're active for next iteration
+			bPersistentActiveState = true;
+
 			//If we got to this point, then this means the notify looped more than once, which shouldn't happen ever
 			if (RemainingDeltaTime > 0.0f)
 			{
@@ -75,7 +83,7 @@ void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float 
 		//Same logic as above, with the relevant markers flipped
 		//First figure out if this notify was active last frame, if so we need to tick it first
 		const float EndTime = Time + Duration;
-		const bool bWasActive = LastPlaybackTime > Time && LastPlaybackTime < EndTime;
+		const bool bWasActive = bPersistentActiveState;
 		if (bWasActive)
 		{
 			const float TickTime = FMath::Max(RemainingDeltaTime, Time - LastPlaybackTime);
@@ -95,6 +103,7 @@ void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float 
 		if (bWasActive)
 		{
 			OnNotifyEnd(OwningInstance);
+			bPersistentActiveState = false;
 		}
 
 		//At this point, we know for sure we at least we are out of the notify play-range.
@@ -113,6 +122,9 @@ void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float 
 			//Shave off the time, any remaining time will be ignored
 			RemainingDeltaTime -= TickTime;
 
+			//Ask the persistent storage to remember that we're active for next iteration
+			bPersistentActiveState = true;
+
 			//If we got to this point, then this means the notify looped more than once, which shouldn't happen ever
 			if (RemainingDeltaTime < 0.0f)
 			{
@@ -122,17 +134,22 @@ void UPaperZDAnimNotifyState::TickNotify(float DeltaTime, float Playtime, float 
 	}
 }
 
-void UPaperZDAnimNotifyState::OnNotifyBegin_Implementation(UPaperZDAnimInstance *OwningInstance /* = nullptr*/)
+void UPaperZDAnimNotifyState::OnNotifyBegin_Implementation(UPaperZDAnimInstance *OwningInstance /* = nullptr*/) const
 {
 	//Empty Implementation
 }
 
-void UPaperZDAnimNotifyState::OnNotifyTick_Implementation(float DeltaTime, UPaperZDAnimInstance *OwningInstance /* = nullptr*/)
+void UPaperZDAnimNotifyState::OnNotifyTick_Implementation(float DeltaTime, UPaperZDAnimInstance *OwningInstance /* = nullptr*/) const
 {
 	//Empty Implementation
 }
 
-void UPaperZDAnimNotifyState::OnNotifyEnd_Implementation(UPaperZDAnimInstance *OwningInstance /* = nullptr*/)
+void UPaperZDAnimNotifyState::OnNotifyEnd_Implementation(UPaperZDAnimInstance *OwningInstance /* = nullptr*/) const
 {
 	//Empty Implementation
+}
+
+void UPaperZDAnimNotifyState::OnNotifyAborted(UPaperZDAnimInstance* OwningInstance) const
+{
+	OnNotifyEnd(OwningInstance);
 }

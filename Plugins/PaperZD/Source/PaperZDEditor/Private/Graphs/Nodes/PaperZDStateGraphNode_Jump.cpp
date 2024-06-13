@@ -6,6 +6,10 @@
 #include "Kismet2/Kismet2NameValidators.h"
 #include "Engine/Blueprint.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDStateGraphNode_Jump)
+#endif
+
 UPaperZDStateGraphNode_Jump::UPaperZDStateGraphNode_Jump(const FObjectInitializer& ObjectInitializer)
 	: Super()
 {

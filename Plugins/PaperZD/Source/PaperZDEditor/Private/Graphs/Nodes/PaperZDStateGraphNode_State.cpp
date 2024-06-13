@@ -11,8 +11,12 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #include "EdGraphUtilities.h"
-
 #include "Kismet2/KismetEditorUtilities.h"
+
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDStateGraphNode_State)
+#endif
+
 UPaperZDStateGraphNode_State::UPaperZDStateGraphNode_State(const FObjectInitializer& ObjectInitializer)
 	: Super()
 {

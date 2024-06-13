@@ -39,7 +39,7 @@ namespace PaperZDAnimationSourceTabs
 class FPaperZDAnimationSourceEditor : public FWorkflowCentricApplication//, public FGCObject //, public FEditorUndoClient, public FNotifyHook
 {
 	/* The animation source we're currently editing. */
-	UPaperZDAnimationSource* AnimSource;
+	TObjectPtr<UPaperZDAnimationSource> AnimSource;
 
 	/* Selected animation asset we're inspecting. */
 	TWeakObjectPtr<UPaperZDAnimSequence> SelectedAnimAsset;

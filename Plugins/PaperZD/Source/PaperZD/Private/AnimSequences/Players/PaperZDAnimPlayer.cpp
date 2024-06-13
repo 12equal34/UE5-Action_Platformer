@@ -8,6 +8,10 @@
 #include "Notifies/PaperZDAnimNotify_Base.h"
 #include "PaperZDStats.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimPlayer)
+#endif
+
 #define MIN_RELEVANT_WEIGHT 0.35f
 
 //Stats declarations
@@ -85,7 +89,7 @@ bool UPaperZDAnimPlayer::IsRelevantWeight(float Weight) const
 //Playback controls
 void UPaperZDAnimPlayer::TickPlayback(const UPaperZDAnimSequence* AnimSequence, float& PlaybackMarker, float DeltaTime, bool bLooping, UPaperZDAnimInstance* OwningInstance /* = nullptr */, float EffectiveWeight /* = 1.0f */, bool bSkipNotifies /* = false */)
 {
-	if (AnimSequence && AnimSequence->GetTotalDuration() > 0.0f && bPlaying && DeltaTime != 0.0f)
+	if (AnimSequence && AnimSequence->GetTotalDuration() > 0.0f && bPlaying)
 	{
 		float PreviousTime = PlaybackMarker;
 		bool bSequencePlaybackComplete = false;
@@ -114,7 +118,7 @@ void UPaperZDAnimPlayer::TickPlayback(const UPaperZDAnimSequence* AnimSequence, 
 			bSequencePlaybackComplete = PlaybackMarker >= AnimSequence->GetTotalDuration();
 			PlaybackMarker = bLooping ? FMath::Fmod(PlaybackMarker, AnimSequence->GetTotalDuration()) : FMath::Min(PlaybackMarker, AnimSequence->GetTotalDuration());
 		}
-		else
+		else if (DeltaTime < 0.0f)
 		{
 			PlaybackMarker += DeltaTime;
 			bSequencePlaybackComplete = PlaybackMarker <= 0.0f;
@@ -126,21 +130,11 @@ void UPaperZDAnimPlayer::TickPlayback(const UPaperZDAnimSequence* AnimSequence, 
 		const bool bIsRelevant = IsRelevantWeight(EffectiveWeight);
 		if (bIsRelevant && !bSkipNotifies && RenderComponent)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_AnimNotifyTick);
-			for (UPaperZDAnimNotify_Base* Notify : AnimSequence->GetAnimNotifies())
-			{
-#if WITH_EDITOR
-				//Prevent from firing in editor if specifically requested
-				if (OwningInstance != nullptr || Notify->bShouldFireInEditor)
-#endif
-				{
-					Notify->TickNotify(DeltaTime, PlaybackMarker, PreviousTime, RenderComponent, OwningInstance);
-				}
-			}
+			ProcessAnimSequenceNotifies(AnimSequence, DeltaTime, PlaybackMarker, PreviousTime, EffectiveWeight, OwningInstance);
 		}
 
 		//Notify anyone who needs to know about looping or sequence playback completion
-		if (bSequencePlaybackComplete && bIsRelevant)
+		if (bSequencePlaybackComplete)
 		{
 			//We separate the delegates into two, one for looping, and one for playback completion
 			if (bLooping)
@@ -156,16 +150,21 @@ void UPaperZDAnimPlayer::TickPlayback(const UPaperZDAnimSequence* AnimSequence, 
 	}
 }
 
-void UPaperZDAnimPlayer::ProcessAnimSequenceNotifies(const UPaperZDAnimSequence* AnimSequence, float FromTime, float ToTime, float Weight /* = 1.0f */, UPaperZDAnimInstance* OwningInstance /* = nullptr */)
+void UPaperZDAnimPlayer::ProcessAnimSequenceNotifies(const UPaperZDAnimSequence* AnimSequence, float DeltaTime, float CurrentTime, float PreviousTime, float Weight /* = 1.0f */, UPaperZDAnimInstance* OwningInstance /* = nullptr */)
 {
-	SCOPE_CYCLE_COUNTER(STAT_AnimNotifyTick);
-
 	const bool bIsRelevant = IsRelevantWeight(Weight);
 	if (bIsRelevant && RegisteredRenderComponent.IsValid())
 	{
 		for (UPaperZDAnimNotify_Base* Notify : AnimSequence->GetAnimNotifies())
 		{
-			Notify->TickNotify(ToTime - FromTime, ToTime, FromTime, RegisteredRenderComponent.Get(), OwningInstance);
+#if WITH_EDITOR
+			//Prevent from firing in editor if specifically requested
+			if (OwningInstance != nullptr || Notify->bShouldFireInEditor)
+#endif
+			{
+				//Add the notify to the list of deferred updates to do after the render pass
+				DeferredAnimNotifyUpdateHandles.Add(FAnimNotifyUpdateHandle(Notify, DeltaTime, CurrentTime, PreviousTime, OwningInstance));
+			}
 		}
 	}
 }
@@ -188,6 +187,9 @@ void UPaperZDAnimPlayer::PlaySingleAnimation(const UPaperZDAnimSequence* AnimSeq
 		//Update the playback
 		PlaybackHandle->UpdateRenderPlayback(RegisteredRenderComponent.Get(), LastPlaybackData, bPreviewPlayer);
 	}
+
+	//Process any pending notify that was deferred to after the render pass
+	ProcessDeferredAnimNotifies();
 }
 
 void UPaperZDAnimPlayer::Play(const FPaperZDAnimationPlaybackData& PlaybackData)
@@ -208,6 +210,9 @@ void UPaperZDAnimPlayer::Play(const FPaperZDAnimationPlaybackData& PlaybackData)
 			OnPlaybackSequenceChanged.Broadcast(PreviousAnimSequence, LastWeightedAnimation.AnimSequencePtr.Get(), GetPlaybackProgress());
 		}
 	}
+
+	//Process any pending notify that was deferred to after the render pass
+	ProcessDeferredAnimNotifies();
 }
 
 void UPaperZDAnimPlayer::RegisterRenderComponent(UPrimitiveComponent* RenderComponent)
@@ -219,4 +224,39 @@ void UPaperZDAnimPlayer::RegisterRenderComponent(UPrimitiveComponent* RenderComp
 	{
 		PlaybackHandle->ConfigureRenderComponent(RenderComponent, bPreviewPlayer);
 	}
+}
+
+void UPaperZDAnimPlayer::ProcessDeferredAnimNotifies()
+{
+	SCOPE_CYCLE_COUNTER(STAT_AnimNotifyTick);
+
+	UPrimitiveComponent* RenderComponent = RegisteredRenderComponent.Get();
+	TSet<FAnimNotifyUpdateHandle> LastFrameActiveNotifies = MoveTemp(ActiveNotifies);
+	for (const FAnimNotifyUpdateHandle& Handle : DeferredAnimNotifyUpdateHandles)
+	{
+		if (Handle.AnimNotifyPtr.IsValid())
+		{
+			//Obtain the current state and clear from the list of active notifies as this now got processed
+			bool bCurrentlyActive = LastFrameActiveNotifies.Contains(Handle);
+			LastFrameActiveNotifies.Remove(Handle);
+
+			//Process the notify and persist the state
+			Handle.AnimNotifyPtr->TickNotify(Handle.DeltaTime, Handle.CurrentTime, Handle.PreviousTime, RenderComponent, bCurrentlyActive, Handle.OwningInstance);
+			if (bCurrentlyActive)
+			{
+				ActiveNotifies.Add(Handle);
+			}
+		}
+	}
+
+	//Then let any notify that got interrupted by not being processed this frame that they got aborted
+	for (FAnimNotifyUpdateHandle& Handle : LastFrameActiveNotifies)
+	{
+		if (Handle.AnimNotifyPtr.IsValid())
+		{
+			Handle.AnimNotifyPtr->OnNotifyAborted(Handle.OwningInstance);
+		}
+	}
+
+	DeferredAnimNotifyUpdateHandles.Empty();
 }

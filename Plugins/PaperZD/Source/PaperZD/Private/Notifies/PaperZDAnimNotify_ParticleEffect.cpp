@@ -6,6 +6,10 @@
 #include "Particles/ParticleSystem.h"
 #include "ParticleHelper.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNotify_ParticleEffect)
+#endif
+
 UPaperZDAnimNotify_ParticleEffect::UPaperZDAnimNotify_ParticleEffect()
 {
 	bAttached = true;
@@ -47,9 +51,9 @@ FName UPaperZDAnimNotify_ParticleEffect::GetDisplayName_Implementation() const
 	}
 }
 
-void UPaperZDAnimNotify_ParticleEffect::OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance /* = nullptr */)
+void UPaperZDAnimNotify_ParticleEffect::OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance /* = nullptr */) const
 {
-	if (PSTemplate && SequenceRenderComponent)
+	if (PSTemplate && SequenceRenderComponent.IsValid())
 	{
 		if (PSTemplate->IsLooping())
 		{
@@ -60,7 +64,7 @@ void UPaperZDAnimNotify_ParticleEffect::OnReceiveNotify_Implementation(UPaperZDA
 
 		if (bAttached)
 		{
-			UGameplayStatics::SpawnEmitterAttached(PSTemplate, SequenceRenderComponent, SocketName, LocationOffset, RotationOffset, Scale);
+			UGameplayStatics::SpawnEmitterAttached(PSTemplate, SequenceRenderComponent.Get(), SocketName, LocationOffset, RotationOffset, Scale);
 		}
 		else
 		{
@@ -69,10 +73,10 @@ void UPaperZDAnimNotify_ParticleEffect::OnReceiveNotify_Implementation(UPaperZDA
 			SpawnTransform.SetLocation(Transform.TransformPosition(LocationOffset));
 			SpawnTransform.SetRotation(Transform.GetRotation() * RotationOffsetQuat);
 			SpawnTransform.SetScale3D(Scale);
-			UParticleSystemComponent* System = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), PSTemplate, SpawnTransform);
+			UParticleSystemComponent* System = UGameplayStatics::SpawnEmitterAtLocation(SequenceRenderComponent->GetWorld(), PSTemplate, SpawnTransform);
 		}
 	}
-	else
+	else if (!PSTemplate)
 	{
 		UObject* AnimSequencePkg = GetContainingAsset();
 		UE_LOG(LogTemp, Warning, TEXT("Particle Notify: Particle system is null for particle notify '%s' in anim: '%s'"), *(GetDisplayName().ToString()), *GetPathNameSafe(AnimSequencePkg));

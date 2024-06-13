@@ -7,6 +7,10 @@
 #include "ScopedTransaction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_LayerAnimations)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNodes"
 
 UPaperZDAnimGraphNode_LayerAnimations::UPaperZDAnimGraphNode_LayerAnimations()

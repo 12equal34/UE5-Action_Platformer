@@ -20,6 +20,10 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_StateMachine)
+#endif
+
 /////////////////////////////////////////////////////
 // Node Name validator
 

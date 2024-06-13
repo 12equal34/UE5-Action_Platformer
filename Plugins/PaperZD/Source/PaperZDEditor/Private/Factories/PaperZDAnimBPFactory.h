@@ -27,7 +27,7 @@ class UPaperZDAnimBPFactory : public UFactory
 	TSharedPtr<SWindow> PickerWindow;
 
 	/* Animation source in which to base the new blueprint. */
-	class UPaperZDAnimationSource* SupportedAnimationSource;
+	TObjectPtr<class UPaperZDAnimationSource> SupportedAnimationSource;
 
 public:
 	UPaperZDAnimBPFactory(const FObjectInitializer& ObjectInitializer);

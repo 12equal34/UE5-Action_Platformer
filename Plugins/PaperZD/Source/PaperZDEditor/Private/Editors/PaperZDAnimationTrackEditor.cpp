@@ -11,13 +11,14 @@
 #include "SequencerSectionPainter.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
-#include "CommonMovieSceneTools.h"
 #include "PaperZDAnimBPGeneratedClass.h"
+#include "PaperZDAnimInstance.h"
 #include "AnimSequences/PaperZDAnimSequence.h"
 #include "AnimSequences/Sources/PaperZDAnimationSource.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Layout/SBorder.h"
+#include "TimeToPixel.h"
 
 
 namespace PaperZDAnimationEditorConstants
@@ -267,6 +268,8 @@ void FPaperZDAnimationTrackEditor::OnAnimationSequenceSelected(const FAssetData&
 	UPaperZDAnimSequence* SelectedSequence = Cast<UPaperZDAnimSequence>(AssetData.GetAsset());	
 	if (SelectedSequence && SequencerPtr.IsValid())
 	{
+		const FScopedTransaction Transaction(LOCTEXT("AddAnimation_Transaction", "Add Animation"));
+
 		UObject* Object = SequencerPtr->FindSpawnedObjectOrTemplate(ObjectBinding);
 		int32 RowIndex = INDEX_NONE;
 		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FPaperZDAnimationTrackEditor::AddKeyInternal, Object, SelectedSequence, Track, RowIndex));
@@ -306,6 +309,7 @@ FKeyPropertyResult FPaperZDAnimationTrackEditor::AddKeyInternal(FFrameNumber Key
 
 		if (ensure(Track))
 		{
+			Track->Modify();
 			Cast<UPaperZDMovieSceneAnimationTrack>(Track)->AddNewAnimationOnRow(KeyTime, AnimSequence, RowIndex);
 			KeyPropertyResult.bTrackModified = true;
 		}

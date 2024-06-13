@@ -29,12 +29,12 @@ class PAPERZD_API UPaperZDAnimationComponent : public UActorComponent, public IP
 	FComponentReference RenderComponent_DEPRECATED;
 
 	/* Render component to update when using the animation blueprints. */
-	UPROPERTY(EditAnywhere, Category = "PaperZD", meta = (AllowAnyComponent, UseComponentPicker, AllowedClasses = "PrimitiveComponent"))
+	UPROPERTY(EditAnywhere, Category = "PaperZD", meta = (AllowAnyComponent, UseComponentPicker, AllowedClasses = "/Script/Engine.PrimitiveComponent"))
 	FPaperZDComponentReference RenderComponentRef;
 
 	/* The animation instance used for managing the animation. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "PaperZD", meta = (AllowPrivateAccess = " true"))
-	UPaperZDAnimInstance* AnimInstance;
+	TObjectPtr<UPaperZDAnimInstance> AnimInstance;
 
 public:	
 	// Sets default values for this component's properties

@@ -3,6 +3,10 @@
 #include "Graphs/PaperZDNotifyGraphSchema.h"
 #include "Graphs/PaperZDNotifyGraph.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDNotifyGraphSchema)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNotifyGraph"
 
 UPaperZDNotifyGraphSchema::UPaperZDNotifyGraphSchema(const FObjectInitializer& ObjectInitializer)

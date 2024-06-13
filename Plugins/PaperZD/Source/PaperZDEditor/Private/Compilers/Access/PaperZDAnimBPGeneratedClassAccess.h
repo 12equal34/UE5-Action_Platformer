@@ -18,7 +18,7 @@ class FPaperZDAnimBPGeneratedClassAccess
 	}
 
 	/* Pointer to the generated class we're accessing. */
-	UPaperZDAnimBPGeneratedClass* GeneratedClass;
+	TObjectPtr<UPaperZDAnimBPGeneratedClass> GeneratedClass;
 
 public:
 	/* Obtain the array of exposed value handlers (functions/properties). */

@@ -2,6 +2,10 @@
 
 #include "AnimNodes/PaperZDAnimNode_CacheAnimation.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_CacheAnimation)
+#endif
+
 FPaperZDAnimNode_CacheAnimation::FPaperZDAnimNode_CacheAnimation()
 	: LastUpdateFrameNumber(INDEX_NONE)
 	, bEverInitialized(false)

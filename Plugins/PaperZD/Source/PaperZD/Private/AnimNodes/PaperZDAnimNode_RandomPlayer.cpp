@@ -2,6 +2,11 @@
 
 #include "AnimNodes/PaperZDAnimNode_RandomPlayer.h"
 #include "AnimSequences/Players/PaperZDAnimPlayer.h"
+#include "PaperZDAnimInstance.h"
+
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_RandomPlayer)
+#endif
 
 FPaperZDAnimNode_RandomPlayer::FPaperZDAnimNode_RandomPlayer()
 	: bShuffleMode(false)

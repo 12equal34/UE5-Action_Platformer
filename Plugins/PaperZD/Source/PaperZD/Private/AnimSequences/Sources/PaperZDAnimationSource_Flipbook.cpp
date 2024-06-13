@@ -5,6 +5,10 @@
 #include "AnimSequences/PaperZDAnimSequence_Flipbook.h"
 #include "PaperFlipbookComponent.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimationSource_Flipbook)
+#endif
+
 UPaperZDAnimationSource_Flipbook::UPaperZDAnimationSource_Flipbook()
 {
 	SupportedAnimSequenceClass = UPaperZDAnimSequence_Flipbook::StaticClass();

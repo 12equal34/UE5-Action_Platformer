@@ -7,6 +7,8 @@
 #include "Notifies/PaperZDAnimNotify.h"
 #include "PaperZDAnimNotify_ParticleEffect.generated.h"
 
+class UParticleSystem;
+
 /**
  * Spawns a one shot particle effect on a given location around the RenderComponent.
  */
@@ -21,7 +23,7 @@ class PAPERZD_API UPaperZDAnimNotify_ParticleEffect : public UPaperZDAnimNotify
 public:	
 	// Particle System to Spawn
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AnimNotify", meta=(DisplayName="Particle System"))
-	UParticleSystem* PSTemplate;
+	TObjectPtr<UParticleSystem> PSTemplate;
 
 	// Location offset from the socket
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AnimNotify")
@@ -55,7 +57,7 @@ public:
 	// End UObject interface
 
 	//Override the native notify implementation
-	void OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance = nullptr) override;
+	void OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance = nullptr) const override;
 	FName GetDisplayName_Implementation() const override;
 	
 	

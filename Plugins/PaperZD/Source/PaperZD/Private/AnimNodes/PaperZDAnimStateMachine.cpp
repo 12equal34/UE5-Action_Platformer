@@ -3,6 +3,10 @@
 #include "AnimNodes/PaperZDAnimStateMachine.h"
 #include "PaperZDAnimBPGeneratedClass.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimStateMachine)
+#endif
+
 bool FPaperZDAnimStateMachineTransitionRule::EvaluateRule(UObject* AnimInstance) const
 {
 	if (bDynamicRule)

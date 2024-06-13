@@ -15,6 +15,10 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintNodeSpawner.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDK2Node_AnimGetter)
+#endif
+
 #define LOCTEXT_NAMESPACE "PaperZDTransitionGraphNode_Result"
 
 void UPaperZDK2Node_AnimGetter::PostPasteNode()
@@ -106,15 +110,7 @@ bool UPaperZDK2Node_AnimGetter::IsActionFilteredOut(FBlueprintActionFilter const
 						{
 							if (SourceStateNode)
 							{
-								if (UPaperZDStateGraphNode_Transition* SourceTransitionNode = Cast<UPaperZDStateGraphNode_Transition>(SourceStateNode))
-								{
-									// if we have a transition node, make sure it's the same as the one we're in
-									if (SourceTransitionNode == TransitionNode)
-									{
-										return false;
-									}
-								}
-								else if (UPaperZDStateGraphNode_State* PreviousStateNode = Cast<UPaperZDStateGraphNode_State>(TransitionNode->GetFromNode()))
+								if (UPaperZDStateGraphNode_State* PreviousStateNode = Cast<UPaperZDStateGraphNode_State>(TransitionNode->GetFromNode()))
 								{
 									// Only allow actions using states that are referencing the previous state
 									if (SourceStateNode == PreviousStateNode)

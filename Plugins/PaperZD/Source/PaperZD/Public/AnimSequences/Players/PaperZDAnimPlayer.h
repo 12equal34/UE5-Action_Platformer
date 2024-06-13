@@ -10,6 +10,7 @@ class UPrimitiveComponent;
 class UPaperZDAnimInstance;
 class UPaperZDPlaybackHandle;
 class UPaperZDAnimationSource;
+class UPaperZDAnimNotifyState;
 
 /**
  * The type of playbacks available for the player
@@ -38,7 +39,7 @@ class PAPERZD_API UPaperZDAnimPlayer : public UObject
 
 	/* Pointer to the handle that manages render playback for the animation instance. */
 	UPROPERTY(Transient)
-	UPaperZDPlaybackHandle* PlaybackHandle;
+	TObjectPtr<UPaperZDPlaybackHandle> PlaybackHandle;
 
 	/* The component that the player is using for rendering the animations. */
 	UPROPERTY(Transient)
@@ -49,6 +50,44 @@ class PAPERZD_API UPaperZDAnimPlayer : public UObject
 
 	/* The main animation sent by the playback data struct, which we use as basis for getting the playback progress information. */
 	FPaperZDWeightedAnimation LastWeightedAnimation;
+
+	/**
+	 * Holds the information of AnimNotifies that will be triggered after the render pass.
+	 * AnimNotifies will be registered for updates during the 'update' pass on the plugin, but need to be actually triggered after the 'render' pass, so any notify
+	 * attempting to use updated render data (like Sockets), does have the most up to date information.
+	 */
+	struct FAnimNotifyUpdateHandle
+	{
+		TWeakObjectPtr<UPaperZDAnimNotify_Base> AnimNotifyPtr;
+		float DeltaTime;
+		float CurrentTime;
+		float PreviousTime;
+		UPaperZDAnimInstance* OwningInstance;
+
+		FAnimNotifyUpdateHandle(UPaperZDAnimNotify_Base* InAnimNotify, float InDeltaTime, float InCurrentTime, float InPreviousTime, UPaperZDAnimInstance* InOwningInstance)
+			: AnimNotifyPtr(InAnimNotify)
+			, DeltaTime(InDeltaTime)
+			, CurrentTime(InCurrentTime)
+			, PreviousTime(InPreviousTime)
+			, OwningInstance(InOwningInstance)
+		{}
+
+		/* Type hash for set. */
+		friend uint32 GetTypeHash(const FAnimNotifyUpdateHandle& Handle)
+		{
+			return GetTypeHash(Handle.AnimNotifyPtr.Get());
+		}
+
+		/* operator override for set. */
+		bool operator==(const FAnimNotifyUpdateHandle& Other) const
+		{
+			return AnimNotifyPtr == Other.AnimNotifyPtr;
+		}
+	};
+	TArray<FAnimNotifyUpdateHandle> DeferredAnimNotifyUpdateHandles;
+
+	/* Notifies that are considered 'active' for next update. */
+	TSet<FAnimNotifyUpdateHandle> ActiveNotifies;
 
 	//State variables
 	bool bPlaying;
@@ -142,7 +181,7 @@ public:
 	/**
 	 * Processes the given AnimSequence and triggers all the notifies that are relevant in the playback window.
 	 */
-	 void ProcessAnimSequenceNotifies(const UPaperZDAnimSequence* AnimSequence, float FromTime, float ToTime, float Weight = 1.0f, UPaperZDAnimInstance* OwningInstance = nullptr);
+	 void ProcessAnimSequenceNotifies(const UPaperZDAnimSequence* AnimSequence, float DeltaTime, float CurrentTime, float PreviousTime, float Weight = 1.0f, UPaperZDAnimInstance* OwningInstance = nullptr);
 
 	/**
 	 * Plays the given single animation
@@ -180,4 +219,7 @@ public:
 private:
 	/* True if the given weight can be considered as "relevant" for triggering notifies and calling events. */
 	bool IsRelevantWeight(float Weight) const;
+
+	/* Process the list of notifies that are deferred for updates after the render pass of the plugin is completed. */
+	void ProcessDeferredAnimNotifies();
 };

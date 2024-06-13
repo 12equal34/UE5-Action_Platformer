@@ -5,6 +5,7 @@
 #include "UObject/Interface.h"
 #include "Templates/SubclassOf.h"
 #include "IPaperZDAnimInstanceManager.h"
+#include "AnimSequences/Players/PaperZDAnimationPlaybackData.h"
 #include "PaperZDAnimInstance.generated.h"
 
 class UPaperZDAnimSequence;
@@ -20,14 +21,14 @@ DECLARE_DELEGATE_OneParam(FZDOnAnimationOverrideEndSignature, bool /* bCompleted
 /**
  * Runtime class that the AnimBP gets compiled into.
  */
-UCLASS(abstract, BlueprintType, Transient)
+UCLASS(abstract, BlueprintType, Transient, Blueprintable)
 class PAPERZD_API UPaperZDAnimInstance : public UObject
 {
 	GENERATED_BODY()
 
 	/* Pointer to the Animation Player that is responsible of the playback of the sequences. */
 	UPROPERTY(Transient)
-	UPaperZDAnimPlayer* AnimPlayer;
+	TObjectPtr<UPaperZDAnimPlayer> AnimPlayer;
 
 	/* The main sink node that collects the final animation data. */
 	FPaperZDAnimNode_Sink* RootNode;
@@ -37,7 +38,9 @@ class PAPERZD_API UPaperZDAnimInstance : public UObject
 	
 	/**
 	 * The PaperZD Character that owns this instance, not null when the instance is called through a ZD character.
-	 * Maintained only for backwards compatibility, one should prefer using the "GetOwningActor" method instead.
+	 * Maintained only for backwards compatibility only, one should prefer using the "GetOwningActor" method instead.
+	 *
+	 * It internally calls "GetOwningActor" while casting to a PaperZDCharacter.
 	 */
 	UPROPERTY(BlueprintGetter = "GetPaperCharacter", Transient, Category="PaperZD")
 	APaperZDCharacter* PaperCharacter;
@@ -67,9 +70,19 @@ class PAPERZD_API UPaperZDAnimInstance : public UObject
 		FZDOnAnimationOverrideEndSignature OnOverrideEnd;
 	};
 	TArray<FAnimationOverrideHandle> AnimationOverrideHandles;
+
+	/* The override data already processed for 'slots' to use. */
+	struct FProcessedAnimationOverrideData
+	{
+		/* Name of the overridden slot. */
+		FName SlotName;
+
+		/* The playback data for the slot to consume. */
+		FPaperZDAnimationPlaybackData PlaybackData;
+	};
+	TArray<FProcessedAnimationOverrideData> ProcessedOverrideData;
 	
 public:
-
 	/* If this AnimBP should globally ignore time dilation. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PaperZD")
 	bool bIgnoreTimeDilation;
@@ -159,6 +172,9 @@ public:
 	/* Called after sequencer finished playing and thus, should return to normal execution path for the animations. */
 	void RestorePreMovieSequenceState();
 
+	/* Used by sequencer to force a 'virtual update' of the animation blueprint so the animations can be correctly previewed using the Animation Blueprint logic. */
+	void UpdateSequencerPreview();
+
 	/* Play the given animation through the override slot. Returns whether the animation has correctly been queued. */
 	bool PlayAnimationOverride(const UPaperZDAnimSequence* AnimSequence, FName SlotName = "DefaultSlot", float PlayRate = 1.0f, float StartingPosition = 0.0f, FZDOnAnimationOverrideEndSignature OnOverrideEnd = FZDOnAnimationOverrideEndSignature());
 
@@ -175,7 +191,10 @@ public:
 	void StopAllAnimationOverrides();
 
 	/* Get the playback information for the given slot. */
-	bool GetAnimationOverrideDataBySlot(FName Slot, TWeakObjectPtr<const UPaperZDAnimSequence>& AnimSequencePtr, float& PlaybackTime) const;
+	bool GetAnimationOverrideDataBySlot(FName SlotName, FPaperZDAnimationPlaybackData& OutPlaybackData) const;
+
+	/* Sets the animation override data on a specific slot. If 'overwrite' is set to true it will write on top of any existing override. */
+	void SetAnimationOverrideDataBySlot(FName SlotName, const FPaperZDAnimationPlaybackData& PlaybackData, bool bOverwriteExisting = false);
 
 	 /** Gets the length in seconds of the asset referenced in an asset player node */
 	UFUNCTION(BlueprintPure, Category="Asset Player", meta=(DisplayName="Length", BlueprintInternalUseOnly="true", AnimGetter="true"))

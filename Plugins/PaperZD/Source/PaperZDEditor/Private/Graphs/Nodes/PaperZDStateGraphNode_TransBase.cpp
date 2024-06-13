@@ -8,6 +8,10 @@
 #include "Kismet2/Kismet2NameValidators.h"
 #include "EdGraphUtilities.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDStateGraphNode_TransBase)
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //// PaperZD Anim Graph Node
 //////////////////////////////////////////////////////////////////////////

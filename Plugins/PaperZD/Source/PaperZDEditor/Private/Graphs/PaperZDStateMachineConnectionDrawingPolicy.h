@@ -16,9 +16,8 @@ class UEdGraph;
 class FPaperZDStateMachineConnectionDrawingPolicy : public FConnectionDrawingPolicy
 {
 protected:
-	UEdGraph* GraphObj;
-
 	TMap<UEdGraphNode*, int32> NodeWidgetMap;
+
 public:
 	//
 	FPaperZDStateMachineConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj);

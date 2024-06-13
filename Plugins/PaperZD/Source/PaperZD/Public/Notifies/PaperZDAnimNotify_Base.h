@@ -1,11 +1,11 @@
 // Copyright 2017 ~ 2022 Critical Failure Studio Ltd. All rights reserved.
 
 #pragma once
-#include "PaperZDAnimInstance.h"
 #include "Components/PrimitiveComponent.h"
 #include "PaperZDAnimNotify_Base.generated.h"
 
 class UPaperZDAnimSequence;
+class UPaperZDAnimInstance;
 
 /**
  * Base class for all the plugin's notifies.
@@ -33,7 +33,7 @@ class PAPERZD_API UPaperZDAnimNotify_Base : public UObject
 
 	/* The render component currently used by the AnimSequence that owns this notify. */
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "AnimNotify")
-	UPrimitiveComponent* SequenceRenderComponent;
+	mutable TWeakObjectPtr<UPrimitiveComponent> SequenceRenderComponent;
 
 #if WITH_EDITORONLY_DATA
 	/** Whether this notify instance should fire in animation editors */
@@ -48,15 +48,22 @@ public:
 	*/
 	virtual class UWorld* GetWorld() const override;
 
-	//Called each Tick to process the notify and trigger it when necessary 
-	//Playtime and PreviousPlaytime are given for convenience, because the animation can loop
-	virtual void TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, UPaperZDAnimInstance* OwningInstance = nullptr);
+	/**
+	 * Called each Tick to process the notify and trigger it when necessary 
+	 * Playtime and PreviousPlaytime are given for convenience, because the animation can loop.
+	 * 
+	 * The notify can be made 'active' by changing its 'bPersistentActiveState' variable to true, which will persist on the next update cycle, by adding it to the list of 'active notifies' on the player.
+	 */
+	virtual void TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, bool& bPersistentActiveState, UPaperZDAnimInstance* OwningInstance = nullptr) const;
 
 	/**
 	 * Obtain the name to be displayed on the editor's detail's panel
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Notify")
 	FName GetDisplayName() const;
+
+	/* Called when this notify was active and gets 'aborted', usually by the owner AnimSequence no longer being updated. */
+	virtual void OnNotifyAborted(UPaperZDAnimInstance* OwningInstance) const {}
 
 #if WITH_EDITOR
 	virtual bool CanBePlaced(UPaperZDAnimSequence* Animation) const { return true; }

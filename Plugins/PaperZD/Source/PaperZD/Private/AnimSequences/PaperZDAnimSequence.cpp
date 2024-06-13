@@ -7,6 +7,10 @@
 #include "IPaperZDEditorProxy.h"
 #include "PaperZDCustomVersion.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimSequence)
+#endif
+
 //Setup static variables
 const FName UPaperZDAnimSequence::DefaultCategory(TEXT("Default"));
 const FName UPaperZDAnimSequence::AnimSourceMemberName(TEXT("AnimSource"));

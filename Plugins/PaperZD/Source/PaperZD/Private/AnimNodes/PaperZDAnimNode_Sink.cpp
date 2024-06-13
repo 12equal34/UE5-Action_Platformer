@@ -2,6 +2,10 @@
 
 #include "AnimNodes/PaperZDAnimNode_Sink.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_Sink)
+#endif
+
 FPaperZDAnimNode_Sink::FPaperZDAnimNode_Sink()
 	: Name(NAME_None)
 {}

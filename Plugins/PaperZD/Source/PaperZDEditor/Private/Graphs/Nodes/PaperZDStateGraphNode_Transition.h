@@ -30,14 +30,14 @@ class UPaperZDStateGraphNode_Transition : public UPaperZDStateGraphNode_TransBas
 
 	/* Transitional AnimGraph for playing "in-between" state animations. */
 	UPROPERTY()
-	UEdGraph* AnimTransitionalGraph;
+	TObjectPtr<UEdGraph> AnimTransitionalGraph;
 
 #pragma region DEPRECATED
 	UPROPERTY()
 	FName SequenceIdentifier_DEPRECATED;
 
 	UPROPERTY(/*EditAnywhere, Category = _Animation*/)
-	class UPaperZDAnimSequence* AnimSequence_DEPRECATED;
+	TObjectPtr<class UPaperZDAnimSequence> AnimSequence_DEPRECATED;
 #pragma endregion
 
 public:	

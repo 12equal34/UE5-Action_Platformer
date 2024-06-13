@@ -21,7 +21,7 @@ class FPaperZDAnimationSourceViewportClient : public FEditorViewportClient
 	FPreviewScene OwnedPreviewScene;
 
 	//The PaperZDPlayer that will manage the AnimSequence
-	UPaperZDAnimPlayer* Player;
+	TObjectPtr<UPaperZDAnimPlayer> Player;
 
 	// The animation source that drives this viewport
 	TWeakObjectPtr<const UPaperZDAnimationSource> AnimationSourcePtr;

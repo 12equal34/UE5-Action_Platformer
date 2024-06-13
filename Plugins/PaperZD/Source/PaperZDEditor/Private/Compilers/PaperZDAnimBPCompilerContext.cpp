@@ -390,7 +390,8 @@ void FPaperZDAnimBPCompilerContext::ProcessAllAnimationNodes()
 
 void FPaperZDAnimBPCompilerContext::ExpandSplitPins(UEdGraph* Graph)
 {
-	for (TArray<UEdGraphNode*>::TIterator NodeIt(Graph->Nodes); NodeIt; ++NodeIt)
+	//ExpandSplitPins can change the size of the array, so we're better of using an iterator instead
+	for (auto NodeIt = Graph->Nodes.CreateIterator(); NodeIt; ++NodeIt)
 	{
 		UK2Node* K2Node = Cast<UK2Node>(*NodeIt);
 		if (K2Node != nullptr)

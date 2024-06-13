@@ -6,6 +6,10 @@
 #include "EdGraphSchema_K2.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDTransitionGraphNode_Result)
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //// PaperZD Anim Graph Node
 //////////////////////////////////////////////////////////////////////////

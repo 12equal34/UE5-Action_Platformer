@@ -125,7 +125,7 @@ struct PAPERZD_API FPaperZDExposedValueHandler
 
 	/* Cached UFunction. */
 	UPROPERTY()
-	UFunction* Function;
+	TObjectPtr<UFunction> Function;
 
 	// Node property that this value handler is associated with, when the node
 	// is instantiated from this property the node's ExposedValueHandler will 

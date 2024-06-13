@@ -9,6 +9,10 @@
 #include "Kismet2/Kismet2NameValidators.h"
 #include "Kismet2/KismetEditorUtilities.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDStateGraphNode_Transition)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZD_Nodes"
 
 UPaperZDStateGraphNode_Transition::UPaperZDStateGraphNode_Transition(const FObjectInitializer& ObjectInitializer)

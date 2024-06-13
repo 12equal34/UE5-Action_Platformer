@@ -22,10 +22,10 @@ class UPaperZDAnimGraph;
 class FPaperZDAnimDataLinkRecord
 {
 	// Linked node for this pose link, can be nullptr
-	UPaperZDAnimGraphNode_Base* LinkedNode;
+	TObjectPtr<UPaperZDAnimGraphNode_Base> LinkedNode;
 
 	// Linking node for this pose link, can be nullptr
-	UPaperZDAnimGraphNode_Base* LinkingNode;
+	TObjectPtr<UPaperZDAnimGraphNode_Base> LinkingNode;
 
 	// Will either be an array property containing FPaperZDAnimDataLink derived structs, indexed by ChildPropertyIndex, or a FPaperZDAnimDataLink derived struct property 
 	FProperty* ChildProperty;
@@ -204,6 +204,9 @@ protected:
 
 	/* Can customize details tab */
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) { }
+
+	/* Chance to customize the pin on creation. */
+	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex) const {}
 
 	/* Shows or hides the pin for the given property. */
 	virtual void SetShowPinForProperty(FName PropertyName, bool bShowPin);

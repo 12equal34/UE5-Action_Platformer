@@ -14,7 +14,7 @@ class PAPERZD_API UPaperZDAnimNotifyCustom : public UPaperZDAnimNotify
 			
 public:
 	//Override the native notify implementation
-	void OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance = nullptr) override;
+	void OnReceiveNotify_Implementation(UPaperZDAnimInstance* OwningInstance = nullptr) const override;
 
 #if WITH_EDITOR
 	/* Custom notifies cannot be placed directly. */

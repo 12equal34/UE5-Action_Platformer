@@ -6,6 +6,10 @@
 #include "Graphs/Nodes/PaperZDStateGraphNode_Transition.h"
 #include "Graphs/Nodes/PaperZDStateGraphNode_Conduit.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimTransitionGraphSchema)
+#endif
+
 #define LOCTEXT_NAMESPACE "PaperZDAnimGraphSchema"
 
 UPaperZDAnimTransitionGraphSchema::UPaperZDAnimTransitionGraphSchema(const FObjectInitializer& ObjectInitializer)

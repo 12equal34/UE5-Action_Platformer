@@ -28,11 +28,8 @@ private:
 	/* If there's an override currently playing for this slot. */
 	bool bOverride;
 
-	/* AnimSequence that is playing on this override. */
-	TWeakObjectPtr<const UPaperZDAnimSequence> AnimSequencePtr;
-
-	/* Playback time for the overridden animation. */
-	float PlaybackTime;
+	/* The playback data that we're gonna override the slot with. */
+	FPaperZDAnimationPlaybackData OverrideData;
 
 public:
 	//ctor

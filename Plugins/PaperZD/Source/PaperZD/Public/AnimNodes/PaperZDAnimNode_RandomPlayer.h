@@ -16,7 +16,7 @@ struct FPaperZDRandomPlayerEntry
 
 	/* Animation sequence to play. */
 	UPROPERTY(EditAnywhere, Category = "Settings")
-	UPaperZDAnimSequence* AnimSequence;
+	TObjectPtr<UPaperZDAnimSequence> AnimSequence;
 
 	/* Chance that this entry will play when not in shuffle mode (normalized against others). */
 	UPROPERTY(EditAnywhere, Category = "Settings", meta = (UIMin = "0.0", ClampMin = "0.0", UIMax = "1.0", ClampMax = "1.0"))

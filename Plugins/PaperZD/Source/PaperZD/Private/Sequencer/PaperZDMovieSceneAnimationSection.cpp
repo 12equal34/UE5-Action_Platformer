@@ -6,6 +6,10 @@
 #include "MovieSceneTimeHelpers.h"
 #include "AnimSequences/PaperZDAnimSequence.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDMovieSceneAnimationSection)
+#endif
+
 #define LOCTEXT_NAMESPACE "PaperZDMovieSceneAnimationSection"
 
 FPaperZDMovieSceneAnimationParams::FPaperZDMovieSceneAnimationParams()
@@ -16,6 +20,7 @@ FPaperZDMovieSceneAnimationParams::FPaperZDMovieSceneAnimationParams()
 	PlayRate = 1.f;
 	bReverse = false;
 	Weight.SetDefault(1.f);
+	SlotName = TEXT("DefaultSlot");
 }
 
 float FPaperZDMovieSceneAnimationParams::GetDuration() const

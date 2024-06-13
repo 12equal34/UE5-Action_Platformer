@@ -4,6 +4,7 @@
 #include "Editors/AnimTimeline/SPaperZDAnimTimeline.h"
 #include "AnimSequences/PaperZDAnimSequence.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
 
 #define LOCTEXT_NAMESPACE "PaperZDEditor_AnimEditorBase"
 

@@ -3,6 +3,10 @@
 #include "Graphs/PaperZDAnimTransitionGraph.h"
 #include "Graphs/Nodes/PaperZDTransitionGraphNode_Result.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimTransitionGraph)
+#endif
+
 UPaperZDAnimTransitionGraph::UPaperZDAnimTransitionGraph(const FObjectInitializer& ObjectInitializer)
 	: Super()
 {}

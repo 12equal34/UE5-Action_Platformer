@@ -16,6 +16,10 @@
 #include "PaperZDCharacter.h"
 #endif
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimBP)
+#endif
+
 #if WITH_EDITOR
 const FString UPaperZDAnimBP::SequenceNameTemplate("NewAnimSequence");
 #endif
@@ -120,7 +124,7 @@ void UPaperZDAnimBP::CreateGraph()
 		AnimationGraph->bAllowDeletion = false;
 		
 		//@TODO: Check how to maintain the graph in the "last edited documents"
-		LastEditedDocuments.Add(AnimationGraph);
+		LastEditedDocuments.Add(AnimationGraph.Get());
 	}
 }
 

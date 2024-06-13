@@ -3,6 +3,10 @@
 #include "Graphs/Nodes/PaperZDAnimGraphNode_SetDirectionality.h"
 #include "Kismet2/CompilerResultsLog.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_SetDirectionality)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNodes"
 
 UPaperZDAnimGraphNode_SetDirectionality::UPaperZDAnimGraphNode_SetDirectionality()

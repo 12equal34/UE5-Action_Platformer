@@ -44,13 +44,17 @@ struct PAPERZD_API FPaperZDMovieSceneAnimationParams
 	UPROPERTY(EditAnywhere, Category = "Animation")
 	uint32 bReverse : 1;
 
+	/** Name of the slot that the animation will be overriding on the AnimationBlueprint. */
+	UPROPERTY(EditAnywhere, Category = "Animation")
+	FName SlotName;
+
 	/** The weight curve for this animation section */
-	UPROPERTY(/*EditAnywhere, Category = "Animation"*/)
+	UPROPERTY(EditAnywhere, Category = "Animation")
 	FMovieSceneFloatChannel Weight;
 
 	/* Animation sequence to use. */
 	UPROPERTY(EditAnywhere, Category = "Animation")
-	UPaperZDAnimSequence* Animation;
+	TObjectPtr<UPaperZDAnimSequence> Animation;
 };
 
 /**

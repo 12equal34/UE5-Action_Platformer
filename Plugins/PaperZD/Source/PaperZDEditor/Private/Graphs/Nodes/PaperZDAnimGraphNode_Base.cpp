@@ -10,6 +10,11 @@
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_Base)
+#endif
+
+
 namespace FPaperZDAnimGraphNodeUtils
 {
 	//Common pin names
@@ -164,11 +169,13 @@ void UPaperZDAnimGraphNode_Base::InternalPinCreation(TArray<UEdGraphPin*>* OldPi
 	struct FPaperZDAnimPinManager : public FOptionalPinManager
 	{
 		// Old pin relations
+		UPaperZDAnimGraphNode_Base* BaseNode;
 		TArray<UEdGraphPin*>* OldPins;
 		TMap<FName, UEdGraphPin*> OldPinMap;
 
-		FPaperZDAnimPinManager(TArray<UEdGraphPin*>* InOldPins)
-			: OldPins(InOldPins)
+		FPaperZDAnimPinManager(UPaperZDAnimGraphNode_Base* InBaseNode, TArray<UEdGraphPin*>* InOldPins)
+			: BaseNode(InBaseNode)
+			, OldPins(InOldPins)
 		{
 			if (OldPins)
 			{
@@ -270,6 +277,14 @@ void UPaperZDAnimGraphNode_Base::InternalPinCreation(TArray<UEdGraphPin*>* OldPi
 				}
 			}
 		}
+
+		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, FProperty* Property) const override
+		{
+			if (BaseNode)
+			{
+				BaseNode->CustomizePinData(Pin, SourcePropertyName, ArrayIndex);
+			}
+		}
 		// End of FOptionalPinsUpdater interface
 	};
 
@@ -277,7 +292,7 @@ void UPaperZDAnimGraphNode_Base::InternalPinCreation(TArray<UEdGraphPin*>* OldPi
 	{
 		UObject* NodeDefaults = GetArchetype();
 
-		FPaperZDAnimPinManager PinManager(OldPins);
+		FPaperZDAnimPinManager PinManager(this, OldPins);
 		PinManager.RebuildPropertyList(ShowPinForProperties, StructProperty->Struct);
 		PinManager.CreateVisiblePins(ShowPinForProperties, StructProperty->Struct, EGPD_Input, this, StructProperty->ContainerPtrToValuePtr<uint8>(this), NodeDefaults ? StructProperty->ContainerPtrToValuePtr<uint8>(NodeDefaults) : nullptr);
 

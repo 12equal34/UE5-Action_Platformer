@@ -3,6 +3,10 @@
 #include "Graphs/Nodes/PaperZDAnimGraphNode_RandomPlayer.h"
 #include "AnimSequences/PaperZDAnimSequence.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphNode_RandomPlayer)
+#endif
+
 #define LOCTEXT_NAMESPACE "ZDNodes"
 
 UPaperZDAnimGraphNode_RandomPlayer::UPaperZDAnimGraphNode_RandomPlayer()

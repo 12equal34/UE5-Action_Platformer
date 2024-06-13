@@ -15,6 +15,10 @@
 #include "ContentBrowserModule.h"
 #include "Editor.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimBPFactory)
+#endif
+
 #define LOCTEXT_NAMESPACE "PaperZDAnimBlueprintFactory"
 
 UPaperZDAnimBPFactory::UPaperZDAnimBPFactory(const FObjectInitializer& ObjectInitializer)

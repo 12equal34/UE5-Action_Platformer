@@ -223,7 +223,7 @@ void FPaperZDAnimBPCompilerHandle_Base::CreateEvaluationHandler(FPaperZDAnimBPCo
 	//
 
 	// Add a custom event in the graph (entry point)
-	UK2Node_CustomEvent* CustomEventNode = InCompilationContext.SpawnIntermediateEventNode<UK2Node_CustomEvent>(InNode, nullptr, InCompilationContext.GetConsolidatedEventGraph());
+	UK2Node_CustomEvent* CustomEventNode = InCompilationContext.SpawnIntermediateNode<UK2Node_CustomEvent>(InNode, InCompilationContext.GetConsolidatedEventGraph());
 	CustomEventNode->bInternalEvent = true;
 	CustomEventNode->CustomFunctionName = Record.HandlerFunctionName;
 	CustomEventNode->AllocateDefaultPins();
@@ -234,7 +234,7 @@ void FPaperZDAnimBPCompilerHandle_Base::CreateEvaluationHandler(FPaperZDAnimBPCo
 
 	//Begin creating the node structure and wiring up
 	//Create the Member Set node
-	UK2Node_StructMemberSet* AssignmentNode = InCompilationContext.SpawnIntermediateEventNode<UK2Node_StructMemberSet>(InNode, nullptr, InCompilationContext.GetConsolidatedEventGraph());
+	UK2Node_StructMemberSet* AssignmentNode = InCompilationContext.SpawnIntermediateNode<UK2Node_StructMemberSet>(InNode, InCompilationContext.GetConsolidatedEventGraph());
 	AssignmentNode->VariableReference.SetSelfMember(Record.NodeVariableProperty->GetFName());
 	AssignmentNode->StructType = Record.NodeVariableProperty->Struct;
 	AssignmentNode->AllocateDefaultPins();
@@ -256,7 +256,7 @@ void FPaperZDAnimBPCompilerHandle_Base::CreateEvaluationHandler(FPaperZDAnimBPCo
 			if (TargetPin->PinType.IsArray())
 			{
 				//Create a getter ONLY for the array variable
-				UK2Node_StructMemberGet* ArrayGetter = InCompilationContext.SpawnIntermediateEventNode<UK2Node_StructMemberGet>(InNode, TargetPin, InCompilationContext.GetConsolidatedEventGraph());
+				UK2Node_StructMemberGet* ArrayGetter = InCompilationContext.SpawnIntermediateNode<UK2Node_StructMemberGet>(InNode, InCompilationContext.GetConsolidatedEventGraph());
 				ArrayGetter->VariableReference.SetSelfMember(Record.NodeVariableProperty->GetFName());
 				ArrayGetter->StructType = Record.NodeVariableProperty->Struct;
 				ArrayGetter->AllocatePinsForSingleMemberGet(TargetPin->PinName);

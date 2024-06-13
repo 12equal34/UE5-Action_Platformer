@@ -10,6 +10,10 @@
 #include "PaperZDAnimBP.h"
 #endif
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDCharacter)
+#endif
+
 APaperZDCharacter::APaperZDCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

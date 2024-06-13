@@ -17,7 +17,10 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "MovieSceneTimeHelpers.h"
 #include "CommonFrameRates.h"
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 3
 #include "TimeSliderArgs.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "PaperZDEditor_AnimTimeSliderController"
 

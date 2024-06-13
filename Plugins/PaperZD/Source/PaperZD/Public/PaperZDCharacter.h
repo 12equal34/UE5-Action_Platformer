@@ -21,16 +21,16 @@ class PAPERZD_API APaperZDCharacter : public APaperCharacter, public IPaperZDSeq
 private:
 	/* Animation component that manages the AnimBP. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PaperZD", meta = (AllowPrivateAccess = "true"))
-	UPaperZDAnimationComponent* AnimationComponent;
+	TObjectPtr<UPaperZDAnimationComponent> AnimationComponent;
 
 	/* The AnimInstance that drives this character, maintained for backwards compatibility. */
 	UPROPERTY(Transient, Category = "PaperZD", BlueprintGetter = "GetAnimInstance")
-	UPaperZDAnimInstance* AnimInstance;
+	TObjectPtr<UPaperZDAnimInstance> AnimInstance;
 
 #if WITH_EDITORONLY_DATA
 	/* Deprecated: AnimationBlueprint used for animating the character, required for backwards support. */
  	UPROPERTY()
- 	UPaperZDAnimBP* AnimationBlueprint_DEPRECATED;
+ 	TObjectPtr<UPaperZDAnimBP> AnimationBlueprint_DEPRECATED;
 #endif
 
 public:

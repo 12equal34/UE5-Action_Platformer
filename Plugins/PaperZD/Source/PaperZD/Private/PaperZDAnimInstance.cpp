@@ -12,6 +12,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "Logging/MessageLog.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimInstance)
+#endif
+
 #define LOCTEXT_NAMESPACE "PaperZD"
 
 //Stats declarations
@@ -26,6 +30,7 @@ UPaperZDAnimInstance::UPaperZDAnimInstance()
 	//Setup CDO values
 	bIgnoreTimeDilation = false;
 	bAllowTransitionalStates = true;
+	bSequencerOverride = false;
 }
 
 UWorld* UPaperZDAnimInstance::GetWorld() const
@@ -147,7 +152,7 @@ void UPaperZDAnimInstance::JumpToNode(FName JumpName, FName StateMachineName /* 
 
 void UPaperZDAnimInstance::ProcessAnimations(float DeltaTime)
 {
-	if (RootNode && !bSequencerOverride)
+	if (RootNode)
 	{
 		{
 			SCOPE_CYCLE_COUNTER(STAT_UpdateAnimGraph);
@@ -158,6 +163,9 @@ void UPaperZDAnimInstance::ProcessAnimations(float DeltaTime)
 			//First do a pass and update any animation node
 			FPaperZDAnimationUpdateContext UpdateContext(this, DeltaTime);
 			RootNode->Update(UpdateContext);
+
+			//We now clear the processed animation override data for next tick
+			ProcessedOverrideData.Empty(AnimationOverrideHandles.Num());
 		}
 
 		{
@@ -205,6 +213,13 @@ void UPaperZDAnimInstance::UpdateAnimationOverrides(float DeltaTime)
 				//Now call the delegate
 				OnOverrideEnd_Copy.ExecuteIfBound(true);
 			}
+			else
+			{
+				//The override is still valid and we should pass it to the array of processed ones for slots to grab
+				FPaperZDAnimationPlaybackData PlaybackData;
+				PlaybackData.SetAnimation(Handle.AnimSequencePtr.Get(), Handle.PlaybackTime);
+				SetAnimationOverrideDataBySlot(Handle.SlotName, PlaybackData);
+			}
 		}
 		else
 		{
@@ -228,6 +243,15 @@ void UPaperZDAnimInstance::PrepareForMovieSequence()
 void UPaperZDAnimInstance::RestorePreMovieSequenceState()
 {
 	bSequencerOverride = false;
+}
+
+void UPaperZDAnimInstance::UpdateSequencerPreview()
+{
+	if (bSequencerOverride)
+	{
+		//We do a 'virtual tick', which won't update anything but force a new evaluation and updates of the animation nodes.
+		ProcessAnimations(0.0f);
+	}
 }
 
 bool UPaperZDAnimInstance::PlayAnimationOverride(const UPaperZDAnimSequence* AnimSequence, FName SlotName /* = "DefaultSlot" */, float PlayRate /* = 1.0f */, float StartingPosition /* = 0.0f */, FZDOnAnimationOverrideEndSignature OnOverrideEnd /* = FZDOnAnimationOverrideEndSignature() */)
@@ -280,16 +304,31 @@ void UPaperZDAnimInstance::K2_PlayAnimationOverride(const UPaperZDAnimSequence* 
 	}
 }
 
-bool UPaperZDAnimInstance::GetAnimationOverrideDataBySlot(FName Slot, TWeakObjectPtr<const UPaperZDAnimSequence>& AnimSequencePtr, float& PlaybackTime) const
+bool UPaperZDAnimInstance::GetAnimationOverrideDataBySlot(FName SlotName, FPaperZDAnimationPlaybackData& OutPlaybackData) const
 {
-	const FAnimationOverrideHandle* pHandle = AnimationOverrideHandles.FindByPredicate([Slot](const FAnimationOverrideHandle& Handle) -> bool { return Handle.SlotName == Slot; });
+	const FProcessedAnimationOverrideData* pHandle = ProcessedOverrideData.FindByPredicate([SlotName](const FProcessedAnimationOverrideData& Handle) -> bool { return Handle.SlotName == SlotName; });
 	if (pHandle)
 	{
-		AnimSequencePtr = pHandle->AnimSequencePtr;
-		PlaybackTime = pHandle->PlaybackTime;
+		OutPlaybackData = pHandle->PlaybackData;
 	}
 
 	return pHandle != nullptr;
+}
+
+void UPaperZDAnimInstance::SetAnimationOverrideDataBySlot(FName SlotName, const FPaperZDAnimationPlaybackData& PlaybackData, bool bOverwriteExisting /* = false */)
+{
+	FProcessedAnimationOverrideData* pHandle = ProcessedOverrideData.FindByPredicate([SlotName](const FProcessedAnimationOverrideData& Handle) -> bool { return Handle.SlotName == SlotName; });
+	if (pHandle && bOverwriteExisting)
+	{
+		pHandle->PlaybackData = PlaybackData;
+	}
+	else
+	{
+		FProcessedAnimationOverrideData Data;
+		Data.SlotName = SlotName;
+		Data.PlaybackData = PlaybackData;
+		ProcessedOverrideData.Add(Data);
+	}
 }
 
 void UPaperZDAnimInstance::StopAnimationOverrideByGroup(FName GroupToStop)

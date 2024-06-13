@@ -20,7 +20,7 @@ class SPaperZDAnimSequenceEditor : public SPaperZDAnimEditorBase, public FEditor
 	TWeakPtr<FPaperZDAnimationSourceEditor> SourceEditorPtr;
 
 	/* Pointer to the animation sequence being edited */
-	UPaperZDAnimSequence* AnimSequence;
+	TObjectPtr<UPaperZDAnimSequence> AnimSequence;
 
 	/* Pointer to the Anim model we're using right now. */
 	TSharedPtr<FPaperZDAnimModel_AnimSequence> AnimModel;

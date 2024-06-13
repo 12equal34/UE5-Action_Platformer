@@ -3,6 +3,10 @@
 #include "AnimSequences/Sources/PaperZDAnimationSource.h"
 #include "IPaperZDEditorProxy.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimationSource)
+#endif
+
 UPaperZDAnimationSource::UPaperZDAnimationSource()
  : bSupportsBlending(false)
  , bSupportsAnimationLayers(false)

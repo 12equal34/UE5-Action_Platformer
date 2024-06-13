@@ -8,6 +8,10 @@
 #include "Engine/World.h"
 #include "Audio.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNotify_PlaySound)
+#endif
+
 UPaperZDAnimNotify_PlaySound::UPaperZDAnimNotify_PlaySound(const FObjectInitializer& ObjectInitializer)
 	: Super()
 {
@@ -20,10 +24,10 @@ UPaperZDAnimNotify_PlaySound::UPaperZDAnimNotify_PlaySound(const FObjectInitiali
 #endif // WITH_EDITORONLY_DATA
 }
 
-void UPaperZDAnimNotify_PlaySound::OnReceiveNotify_Implementation(UPaperZDAnimInstance *OwningInstance /* = nullptr*/)
+void UPaperZDAnimNotify_PlaySound::OnReceiveNotify_Implementation(UPaperZDAnimInstance *OwningInstance /* = nullptr*/) const
 {
 	// We use the SequenceRenderComponent associated to the AnimSequence to know where and how to spawn the sound.
-	if (SequenceRenderComponent && Sound)
+	if (SequenceRenderComponent.IsValid() && Sound)
 	{
 		if (!Sound->IsOneShot())
 		{
@@ -43,7 +47,7 @@ void UPaperZDAnimNotify_PlaySound::OnReceiveNotify_Implementation(UPaperZDAnimIn
 		{
 			if (bFollow)
 			{
-				UGameplayStatics::SpawnSoundAttached(Sound, SequenceRenderComponent, AttachName, FVector(ForceInit), EAttachLocation::SnapToTarget, false, VolumeMultiplier, PitchMultiplier);
+				UGameplayStatics::SpawnSoundAttached(Sound, SequenceRenderComponent.Get(), AttachName, FVector(ForceInit), EAttachLocation::SnapToTarget, false, VolumeMultiplier, PitchMultiplier);
 			}
 			else
 			{

@@ -4,6 +4,10 @@
 #include "PaperZDAnimBPGeneratedClass.h"
 #include "PaperZDAnimInstance.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_Base)
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 // Animation Context
 //////////////////////////////////////////////////////////////////////////

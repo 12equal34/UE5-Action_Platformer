@@ -2,7 +2,12 @@
 
 #include "Notifies/PaperZDAnimNotify_Base.h"
 #include "AnimSequences/PaperZDAnimSequence.h"
+#include "PaperZDAnimInstance.h"
 #include "UObject/Package.h"
+
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNotify_Base)
+#endif
 
 UPaperZDAnimNotify_Base::UPaperZDAnimNotify_Base(const FObjectInitializer& ObjectInitializer)
 	: Super()
@@ -17,7 +22,7 @@ UPaperZDAnimNotify_Base::UPaperZDAnimNotify_Base(const FObjectInitializer& Objec
 
 UWorld* UPaperZDAnimNotify_Base::GetWorld() const
 {
-	return SequenceRenderComponent ? SequenceRenderComponent->GetWorld() : NULL;
+	return SequenceRenderComponent.IsValid() ? SequenceRenderComponent->GetWorld() : NULL;
 }
 
 FName UPaperZDAnimNotify_Base::GetDisplayName_Implementation() const
@@ -25,7 +30,7 @@ FName UPaperZDAnimNotify_Base::GetDisplayName_Implementation() const
 	return Name;
 }
 
-void UPaperZDAnimNotify_Base::TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, UPaperZDAnimInstance* OwningInstance /* = nullptr */)
+void UPaperZDAnimNotify_Base::TickNotify(float DeltaTime, float Playtime, float LastPlaybackTime, UPrimitiveComponent* AnimRenderComponent, bool& bPersistentActiveState, UPaperZDAnimInstance* OwningInstance /* = nullptr */) const
 {
 	SequenceRenderComponent = AnimRenderComponent;
 }

@@ -4,6 +4,11 @@
 #include "AnimNodes/PaperZDAnimNode_Base.h"
 #include "AnimNodes/PaperZDAnimNode_Sink.h"
 #include "AnimNodes/PaperZDAnimNode_StateMachine.h"
+#include "UObject/Package.h"
+
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimBPGeneratedClass)
+#endif
 
 UPaperZDAnimBPGeneratedClass::UPaperZDAnimBPGeneratedClass()
 	: Super()

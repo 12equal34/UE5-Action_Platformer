@@ -5,6 +5,10 @@
 #include "Graphs/Nodes/PaperZDStateGraphNode_Transition.h"
 #include "K2Node_Knot.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimGraphSchema)
+#endif
+
 #define LOCTEXT_NAMESPACE "PaperZDAnimGraphSchema"
 
 //////////////////////////////////////////////////////////////////////////

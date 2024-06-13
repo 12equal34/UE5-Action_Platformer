@@ -15,7 +15,7 @@ class UPaperZDAnimBP;
 class FPaperZDAnimBPEditor : public FBlueprintEditor
 {
 	/* Currently edited animation blueprint. */
-	UPaperZDAnimBP* AnimBPBeingEdited;
+	TObjectPtr<UPaperZDAnimBP> AnimBPBeingEdited;
 
 public:
 	FPaperZDAnimBPEditor();

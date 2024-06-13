@@ -223,7 +223,7 @@ private:
 	TWeakPtr<FPaperZDAnimModel> WeakModel;
 
 	/* Pointer to the AnimSequence identified by the AnimModel. */
-	UPaperZDAnimSequence* AnimSequence;
+	TObjectPtr<UPaperZDAnimSequence> AnimSequence;
 
 	//Slate arguments
 	TAttribute<float>											CurrentPosition;

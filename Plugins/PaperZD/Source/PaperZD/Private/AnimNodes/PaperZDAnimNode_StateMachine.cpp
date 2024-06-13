@@ -7,6 +7,10 @@
 #include "PaperZDAnimInstance.h"
 #include "PaperZDAnimBPGeneratedClass.h"
 
+#if ZD_VERSION_INLINED_CPP_SUPPORT
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PaperZDAnimNode_StateMachine)
+#endif
+
 FPaperZDAnimNode_StateMachine::FScopedAnimationUpdate::FScopedAnimationUpdate(FPaperZDAnimNode_StateMachine* InStateMachine, const FPaperZDAnimationUpdateContext& InUpdateContext)
 	: StateMachine(InStateMachine)
 	, UpdateContext(InUpdateContext)

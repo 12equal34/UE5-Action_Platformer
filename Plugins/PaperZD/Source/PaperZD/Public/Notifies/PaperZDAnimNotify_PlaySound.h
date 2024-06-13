@@ -13,7 +13,7 @@ class PAPERZD_API UPaperZDAnimNotify_PlaySound : public UPaperZDAnimNotify
 public:
 	// Sound to Play
 	UPROPERTY(EditAnywhere, Category = "AnimNotify")
-	USoundBase* Sound;
+	TObjectPtr<USoundBase> Sound;
 
 	// Volume Multiplier
 	UPROPERTY(EditAnywhere, Category = "AnimNotify")
@@ -38,7 +38,7 @@ public:
 	FName AttachName;
 
 public:
-	void OnReceiveNotify_Implementation(UPaperZDAnimInstance *OwningInstance = nullptr) override;
+	void OnReceiveNotify_Implementation(UPaperZDAnimInstance *OwningInstance = nullptr) const override;
 	FName GetDisplayName_Implementation() const override;
 
 };

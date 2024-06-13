@@ -8,13 +8,6 @@
 #include "ClassViewerFilter.h"
 #include "PaperZDAnimSequenceFactory.generated.h"
 
-//WILL REMOVE
-struct FPaperZDAnimSequenceFactoryClassFilter : IClassViewerFilter
-{
-	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override;
-	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef<const IUnloadedBlueprintData> InUnloadedClassData, TSharedRef<FClassViewerFilterFuncs> InFilterFuncs) override;
-};
-
 struct FAssetData;
 class SWindow;
 
@@ -32,7 +25,7 @@ public:
 	 * If no object is set, the factory will display an asset picker to let the user select the target animation blueprint.
 	 */
 	UPROPERTY()
-	class UPaperZDAnimationSource* TargetAnimSource;
+	TObjectPtr<class UPaperZDAnimationSource> TargetAnimSource;
 
 public:
 	UPaperZDAnimSequenceFactory(const FObjectInitializer& ObjectInitializer);
